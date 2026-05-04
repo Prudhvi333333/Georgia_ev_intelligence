@@ -408,35 +408,52 @@ venv\Scripts\python generator\scripts\generate_dashboard.py
 
 ## Environment Setup
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root from the tracked template:
+
+```bash
+cp example.env .env
+```
+
+Then replace the placeholder values:
 
 ```env
-# PostgreSQL (Neon)
-DATABASE_URL=postgresql+psycopg2://user:password@host/dbname
+# PostgreSQL
+DATABASE_URL=postgresql+psycopg2://user:password@host:5432/dbname
 
 # Neo4j
 NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your_password
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=change-me
 
 # Qdrant
-QDRANT_HOST=localhost
-QDRANT_PORT=6333
-QDRANT_COLLECTION=georgia_ev_companies
-QDRANT_FEWSHOT_COLLECTION=ev_fewshot_examples
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=change-me
+QDRANT_COLLECTION_NAME=georgia_ev_chunks
+QDRANT_DENSE_VECTOR_NAME=dense
+QDRANT_SPARSE_VECTOR_NAME=sparse
+QDRANT_VECTOR_DIMENSIONS=768
 
 # Ollama
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_LLM_MODEL=qwen2.5:7b
+OLLAMA_CYPHER_MODEL=gemma3:4b
+OLLAMA_LLM_FALLBACK=llama3.1:8b
 OLLAMA_EMBED_MODEL=nomic-embed-text
 
-# Tavily (for Format 4 web enrichment)
-TAVILY_API_KEY=tvly-your-key-here
+# Tavily (collector web search/extract + generator Format 4 web enrichment)
+# Preferred: paste all available keys here, comma-separated. The code rotates
+# to the next key when Tavily returns quota/credit/rate-limit/auth failures.
+TAVILY_API_KEYS=tvly-key-1,tvly-key-2,tvly-key-3,tvly-key-4,tvly-key-5,tvly-key-6
 
-# Backblaze B2 (Phase 1 storage)
-B2_KEY_ID=your_key_id
-B2_APPLICATION_KEY=your_application_key
+# Single-key fallback also works:
+# TAVILY_API_KEY=tvly-your-key-here
+
+# Backblaze B2
 B2_BUCKET_NAME=georgia-ev-docs
+B2_ENDPOINT_URL=https://s3.us-east-005.backblazeb2.com
+B2_REGION=us-east-005
+B2_ACCESS_KEY_ID=change-me
+B2_SECRET_ACCESS_KEY=change-me
 ```
 
 ### GPU / Model recommendations

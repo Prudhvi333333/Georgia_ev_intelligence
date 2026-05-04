@@ -16,8 +16,8 @@ from typing import Any
 
 import httpx
 
-from collector.shared.config import Config
 from collector.shared.logger import get_logger
+from collector.shared.tavily import async_tavily_post
 
 logger = get_logger("phase1.extractor")
 
@@ -101,17 +101,11 @@ async def tavily_extract(url: str) -> dict[str, Any]:
 
     Returns: {"url": str, "raw_content": str, "images": [...]}
     """
-    cfg = Config.get()
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(
-            "https://api.tavily.com/extract",
-            json={
-                "urls": [url],
-                "api_key": cfg.tavily_api_key,
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
+    data = await async_tavily_post(
+        "https://api.tavily.com/extract",
+        payload={"urls": [url]},
+        timeout=60.0,
+    )
 
     results = data.get("results", [])
     if results:

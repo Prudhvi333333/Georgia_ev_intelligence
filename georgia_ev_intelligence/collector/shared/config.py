@@ -66,7 +66,41 @@ class Config:
     # ── Tavily ───────────────────────────────────────────────
     @property
     def tavily_api_key(self) -> str:
-        return self._require("TAVILY_API_KEY")
+        keys = self.tavily_api_keys
+        if not keys:
+            raise EnvironmentError(
+                "Required environment variable 'TAVILY_API_KEY' or 'TAVILY_API_KEYS' is not set. "
+                "Please update georgia_ev_intelligence/.env"
+            )
+        return keys[0]
+
+    @property
+    def tavily_api_keys(self) -> list[str]:
+        """
+        Tavily API keys in priority order.
+
+        Supported .env formats:
+          TAVILY_API_KEYS=tvly-key1,tvly-key2,tvly-key3
+          TAVILY_API_KEY_1=tvly-key1 ... TAVILY_API_KEY_6=tvly-key6
+          TAVILY_API_KEY=tvly-key1
+        """
+        raw_values: list[str] = []
+        csv_value = os.environ.get("TAVILY_API_KEYS", "")
+        if csv_value:
+            raw_values.extend(csv_value.split(","))
+        for idx in range(1, 7):
+            raw_values.append(os.environ.get(f"TAVILY_API_KEY_{idx}", ""))
+        raw_values.append(os.environ.get("TAVILY_API_KEY", ""))
+
+        keys: list[str] = []
+        seen: set[str] = set()
+        for raw in raw_values:
+            key = raw.strip()
+            if not key or "XXXXX" in key or key in seen:
+                continue
+            keys.append(key)
+            seen.add(key)
+        return keys
 
     # ── Qdrant ───────────────────────────────────────────────
     @property

@@ -273,15 +273,19 @@ def _tavily_search(question: str) -> str:
     Returns formatted string of top results.
     """
     try:
-        from tavily import TavilyClient
-        cfg = Config.get()
-        if not getattr(cfg, "tavily_api_key", None):
-            return ""
-        client = TavilyClient(api_key=cfg.tavily_api_key)
-        results = client.search(
-            query=f"Georgia EV supply chain {question}",
-            max_results=3,
-            search_depth="basic",
+        from collector.shared.tavily import tavily_post
+
+        results = tavily_post(
+            "https://api.tavily.com/search",
+            payload={
+                "query": f"Georgia EV supply chain {question}",
+                "max_results": 3,
+                "search_depth": "basic",
+                "include_answer": False,
+                "include_images": False,
+                "include_raw_content": False,
+            },
+            timeout=30.0,
         )
         snippets = []
         for r in results.get("results", []):

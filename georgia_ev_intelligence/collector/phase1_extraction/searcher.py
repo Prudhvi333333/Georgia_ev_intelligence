@@ -14,8 +14,8 @@ from typing import Any
 
 import httpx
 
-from collector.shared.config import Config
 from collector.shared.logger import get_logger
+from collector.shared.tavily import async_tavily_post
 
 logger = get_logger("phase1.searcher")
 
@@ -64,9 +64,7 @@ async def tavily_search(
     Returns:
         List of result dicts: {url, title, content(snippet), score}
     """
-    cfg = Config.get()
     payload = {
-        "api_key": cfg.tavily_api_key,
         "query": query,
         "max_results": min(max_results, 20),
         "search_depth": search_depth,
@@ -75,10 +73,11 @@ async def tavily_search(
         "include_raw_content": False,  # Snippets only — full content via Extract
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post("https://api.tavily.com/search", json=payload)
-        response.raise_for_status()
-        data = response.json()
+    data = await async_tavily_post(
+        "https://api.tavily.com/search",
+        payload=payload,
+        timeout=30.0,
+    )
 
     raw_results = data.get("results", [])
     results = []
