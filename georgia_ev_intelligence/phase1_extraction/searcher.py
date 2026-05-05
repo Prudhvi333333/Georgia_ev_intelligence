@@ -1,26 +1,34 @@
 """
 Phase 1 — Searcher
 Uses Tavily Search API to find documents for each company.
-Replaces DuckDuckGo entirely.
 
 Tavily search_depth="advanced" = 2 API credits per call.
 Returns structured results ready for the extractor.
+
+Multiple Tavily keys are supported via shared.tavily — when one key is
+exhausted (HTTP 401/402/403/429/432 or quota-style error body) the client
+silently rotates to the next key. The pipeline checkpoints progress to disk,
+so when ALL keys are exhausted the run can be resumed later without losing
+the work that was already saved.
 """
 from __future__ import annotations
 
 import asyncio
-import time
 from typing import Any
 
 import httpx
 
-from shared.config import Config
 from shared.logger import get_logger
+from shared.tavily import (
+    TavilyAllKeysExhausted,
+    async_tavily_post,
+)
 
 logger = get_logger("phase1.searcher")
 
+TAVILY_SEARCH_URL = "https://api.tavily.com/search"
+
 # Domains known to have high-quality EV supply chain content
-# Tavily will still search all domains, but we log when these appear
 PRIORITY_DOMAINS = {
     "georgia.org", "selectgeorgia.com", "savannahjda.com",
     "sec.gov", "energy.gov", "epd.georgia.gov",
@@ -39,7 +47,6 @@ BLOCKLIST_DOMAINS = {
 
 
 def _is_blocked(url: str) -> bool:
-    """Check if a URL should be skipped."""
     url_lower = url.lower()
     return any(domain in url_lower for domain in BLOCKLIST_DOMAINS)
 
@@ -54,31 +61,20 @@ async def tavily_search(
     search_depth: str = "advanced",
 ) -> list[dict[str, Any]]:
     """
-    Call Tavily Search API.
+    Call Tavily Search API. Multi-key rotation is inside async_tavily_post.
 
-    Args:
-        query: Search query string
-        max_results: How many results to return (max 20)
-        search_depth: "basic" (1 credit) or "advanced" (2 credits)
-
-    Returns:
-        List of result dicts: {url, title, content(snippet), score}
+    Raises TavilyAllKeysExhausted if every key has been disabled — callers
+    propagate that so the pipeline can stop cleanly and checkpoint.
     """
-    cfg = Config.get()
     payload = {
-        "api_key": cfg.tavily_api_key,
         "query": query,
         "max_results": min(max_results, 20),
         "search_depth": search_depth,
         "include_answer": False,
         "include_images": False,
-        "include_raw_content": False,  # Snippets only — full content via Extract
+        "include_raw_content": False,
     }
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post("https://api.tavily.com/search", json=payload)
-        response.raise_for_status()
-        data = response.json()
+    data = await async_tavily_post(TAVILY_SEARCH_URL, payload, timeout=30.0)
 
     raw_results = data.get("results", [])
     results = []
@@ -89,7 +85,7 @@ async def tavily_search(
         results.append({
             "url": url,
             "title": item.get("title", ""),
-            "snippet": item.get("content", ""),   # Tavily calls it "content" but it's a snippet
+            "snippet": item.get("content", ""),
             "score": float(item.get("score", 0.0)),
             "is_priority": _is_priority(url),
         })
@@ -107,14 +103,8 @@ async def search_company(
     """
     Run all queries for a single company and collect unique URLs.
 
-    Args:
-        company: Company dict from DB
-        queries: List of query dicts from query_generator.build_queries()
-        concurrency: Parallel Tavily requests at once (3 is safe)
-        delay_between_batches: Seconds between batches (rate limit courtesy)
-
-    Returns:
-        Deduplicated list of URL result dicts with company metadata attached
+    Each result carries the originating Tavily query + query_family so the
+    metadata builder can record search provenance per document.
     """
     company_name = company.get("company_name", "")
     logger.info("Searching for %s (%d queries)", company_name, len(queries))
@@ -132,19 +122,22 @@ async def search_company(
                     max_results=q.get("max_results", 10),
                     search_depth=q.get("search_depth", "advanced"),
                 )
+                for r in results:
+                    r["query"] = q["query_text"]
+                    r["family"] = q.get("family")
                 return results
+            except TavilyAllKeysExhausted:
+                raise
             except httpx.HTTPStatusError as exc:
-                if exc.response.status_code == 429:
-                    logger.warning("Tavily rate limit hit — sleeping 10s")
-                    await asyncio.sleep(10.0)
-                else:
-                    logger.warning("Tavily search failed [%d] for '%s'", exc.response.status_code, q["query_text"][:50])
+                logger.warning(
+                    "Tavily search failed [%d] for '%s'",
+                    exc.response.status_code, q["query_text"][:50],
+                )
                 return []
             except Exception as exc:
                 logger.warning("Tavily search error for '%s': %s", q["query_text"][:50], exc)
                 return []
 
-    # Run in batches to be respectful of rate limits
     batch_size = concurrency * 2
     for batch_start in range(0, len(queries), batch_size):
         batch = queries[batch_start: batch_start + batch_size]
@@ -163,7 +156,6 @@ async def search_company(
         if batch_start + batch_size < len(queries):
             await asyncio.sleep(delay_between_batches)
 
-    # Sort: priority domains first, then by Tavily score
     all_results.sort(key=lambda r: (-int(r["is_priority"]), -r["score"]))
     logger.info(
         "Company '%s': %d unique URLs found (%d priority)",

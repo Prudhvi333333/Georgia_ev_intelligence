@@ -1,46 +1,85 @@
 """
 Phase 1 — Document Storage
+
 Saves extracted documents to:
-  - Backblaze B2 (raw content / PDF bytes)
-  - PostgreSQL gev_documents (metadata + status tracking)
-Deduplicates using SHA-256 content hash.
+  - Backblaze B2  (raw content / PDF bytes / direct HTML / Tavily text)
+  - PostgreSQL    (rich metadata row per document — schema mirrors the
+                   RAG_Data_Management_Framework Document_Registry sheet)
+
+Deduplication keyed on SHA-256 content hash (same content from a different URL
+is reused, B2 isn't double-uploaded).
 """
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
 
+from shared.config import Config
 from shared.db import Document, get_session
 from shared.logger import get_logger
 from shared.storage import key_exists, make_document_key, upload_bytes
 from phase1_extraction.extractor import ExtractedDocument
+from phase1_extraction.metadata import build_document_metadata, metadata_for_failed
 
 logger = get_logger("phase1.doc_storage")
 
 
+def _build_b2_key(extracted: ExtractedDocument, extension: str) -> str | None:
+    if not extracted.content_hash:
+        return None
+    ext = extension.lstrip(".") or ("pdf" if extracted.content_type == "pdf" else "txt")
+    return make_document_key(extracted.company_name, extracted.content_hash, ext)
+
+
+def _content_for_upload(extracted: ExtractedDocument) -> tuple[bytes, str]:
+    """Return (bytes_to_upload, mime). Prefer raw_bytes; fall back to text."""
+    if extracted.raw_bytes:
+        if extracted.content_type == "pdf":
+            return extracted.raw_bytes, "application/pdf"
+        if extracted.content_type == "html":
+            return extracted.raw_bytes, "text/html; charset=utf-8"
+        if extracted.content_type == "json":
+            return extracted.raw_bytes, "application/json"
+        if extracted.content_type == "csv":
+            return extracted.raw_bytes, "text/csv"
+        return extracted.raw_bytes, "text/plain; charset=utf-8"
+    return extracted.text.encode("utf-8"), "text/plain; charset=utf-8"
+
+
 def save_document(
     extracted: ExtractedDocument,
-    company_id: int | None,
-    search_query: str = "",
-    relevance_score: float = 0.0,
+    company: dict[str, Any] | None,
+    search_hit: dict[str, Any] | None = None,
 ) -> int | None:
     """
     Save an extracted document to B2 + PostgreSQL.
 
-    Deduplication:
-        - If content_hash already exists in gev_documents → skip B2 upload, return existing ID
-        - If same URL already indexed → update metadata, return existing ID
+    Args:
+        extracted   : ExtractedDocument from extractor.py.
+        company     : kb_loader company dict (id, company_name, ...).
+        search_hit  : Tavily search result that found this URL (carries
+                      title, snippet, score, query, family). Optional but
+                      recommended — drives metadata provenance.
 
-    Returns:
-        document_id (int) if saved/exists, None if save failed
+    Returns the saved document_id on success, None on failure.
     """
     if not extracted.text or extracted.error:
         logger.debug("Skipping empty/failed extraction for %s", extracted.url)
         return None
 
+    cfg = Config.get()
+    bucket = cfg.b2_bucket
+
+    metadata = build_document_metadata(
+        extracted=extracted,
+        company=company,
+        search_hit=search_hit,
+        b2_bucket=bucket,
+    )
+
     session = get_session()
     try:
-        # Check for duplicate content (same hash = same document from different URL)
+        # Dedup by SHA-256 content hash
         if extracted.content_hash:
             existing_by_hash = (
                 session.query(Document)
@@ -50,77 +89,46 @@ def save_document(
             if existing_by_hash:
                 logger.debug(
                     "Duplicate content for %s (hash matches doc %d) — skipping",
-                    extracted.url, existing_by_hash.id
+                    extracted.url, existing_by_hash.id,
                 )
                 return existing_by_hash.id
 
-        # Check for duplicate URL
-        existing_by_url = (
-            session.query(Document)
-            .filter_by(source_url=extracted.url)
-            .first()
-        )
-
-        # Upload to B2
-        b2_key = None
-        if extracted.content_hash:
-            ext = "pdf" if extracted.content_type == "pdf" else "html"
-            b2_key = make_document_key(
-                extracted.company_name,
-                extracted.content_hash,
-                ext,
-            )
+        # Upload to B2 (idempotent — head_object before put)
+        b2_key = _build_b2_key(extracted, metadata["file_extension"])
+        if b2_key:
             if not key_exists(b2_key):
-                content_to_upload = (
-                    extracted.raw_bytes if extracted.content_type == "pdf" and extracted.raw_bytes
-                    else extracted.text.encode("utf-8")
-                )
-                mime = (
-                    "application/pdf" if extracted.content_type == "pdf"
-                    else "text/plain; charset=utf-8"
-                )
-                upload_bytes(content_to_upload, b2_key, mime)
+                content_bytes, mime = _content_for_upload(extracted)
+                upload_bytes(content_bytes, b2_key, mime)
                 logger.info(
-                    "B2 upload OK [%s] %.1fKB -> %s",
-                    extracted.content_type.upper(), len(content_to_upload) / 1024, b2_key
+                    "B2 upload OK [%s] %.1fKB → %s",
+                    extracted.content_type.upper(), len(content_bytes) / 1024, b2_key,
                 )
             else:
                 logger.info("B2 key already exists (dedup skipped): %s", b2_key)
+        metadata["b2_key"] = b2_key
 
+        # Upsert by source_url
+        existing_by_url = (
+            session.query(Document).filter_by(source_url=extracted.url).first()
+        )
         if existing_by_url:
-            # Update existing record
-            existing_by_url.b2_key = b2_key or existing_by_url.b2_key
-            existing_by_url.content_hash_sha256 = extracted.content_hash
-            existing_by_url.word_count = extracted.word_count
-            existing_by_url.char_count = extracted.char_count
-            existing_by_url.extraction_status = "extracted"
-            existing_by_url.extracted_at = datetime.utcnow()
+            for field, value in metadata.items():
+                if value is None and getattr(existing_by_url, field, None) is not None:
+                    continue
+                setattr(existing_by_url, field, value)
+            existing_by_url.updated_at = datetime.utcnow()
             session.commit()
+            logger.info("DB updated document #%d → %s", existing_by_url.id, extracted.url[:80])
             return existing_by_url.id
 
-        # New document
-        doc = Document(
-            company_id=company_id,
-            company_name=extracted.company_name,
-            source_url=extracted.url,
-            b2_key=b2_key,
-            content_type=extracted.content_type,
-            content_hash_sha256=extracted.content_hash,
-            file_size_bytes=extracted.raw_bytes_size or len(extracted.text.encode("utf-8")),
-            document_type=_infer_document_type(extracted.url, extracted.title if hasattr(extracted, "title") else ""),
-            relevance_score=relevance_score,
-            extraction_status="extracted",
-            word_count=extracted.word_count,
-            search_query=search_query[:500] if search_query else None,
-            extracted_at=datetime.utcnow(),
-        )
+        doc = Document(**metadata)
         session.add(doc)
         session.commit()
         session.refresh(doc)
         logger.info(
-            "DB saved document #%d [%s] %d words -> %s",
-            doc.id, extracted.content_type, extracted.word_count,
-            extracted.url[:80]
+            "DB saved document #%d [%s/%s] %d words → %s",
+            doc.id, metadata["category"], metadata["sub_category"],
+            extracted.word_count, extracted.url[:80],
         )
         return doc.id
 
@@ -132,45 +140,29 @@ def save_document(
         session.close()
 
 
-def _infer_document_type(url: str, title: str) -> str:
-    """Infer document type from URL and title."""
-    url_lower = url.lower()
-    title_lower = title.lower()
-    combined = url_lower + " " + title_lower
-    if "sec.gov" in url_lower or "10-k" in combined or "10-q" in combined:
-        return "SEC Filing"
-    if "press release" in combined or "pressrelease" in url_lower or "pr-" in url_lower:
-        return "Press Release"
-    if "annual report" in combined or "annual-report" in url_lower:
-        return "Annual Report"
-    if "energy.gov" in url_lower or "doe.gov" in url_lower:
-        return "Government Report"
-    if "georgia.org" in url_lower or "selectgeorgia" in url_lower or "gdced" in url_lower:
-        return "Economic Development"
-    if url_lower.endswith(".pdf"):
-        return "PDF Document"
-    if any(w in combined for w in ["news", "article", "reuters", "bloomberg", "autonews"]):
-        return "News Article"
-    return "Web Page"
+def mark_document_failed(
+    url: str,
+    error: str,
+    company: dict[str, Any] | None = None,
+    search_hit: dict[str, Any] | None = None,
+) -> None:
+    """Record a failed extraction attempt with full RAG-framework metadata."""
+    cfg = Config.get()
+    bucket = cfg.b2_bucket
+    metadata = metadata_for_failed(
+        url=url, error=error, company=company,
+        search_hit=search_hit, b2_bucket=bucket,
+    )
 
-
-def mark_document_failed(url: str, error: str, company_id: int | None = None, company_name: str = "") -> None:
-    """Record a failed extraction attempt in PostgreSQL."""
     session = get_session()
     try:
         existing = session.query(Document).filter_by(source_url=url).first()
         if existing:
             existing.extraction_status = "failed"
-            existing.extraction_error = error[:500]
+            existing.extraction_error = (error or "")[:500]
+            existing.processing_status = "Failed"
         else:
-            doc = Document(
-                company_id=company_id,
-                company_name=company_name,
-                source_url=url,
-                extraction_status="failed",
-                extraction_error=error[:500],
-            )
-            session.add(doc)
+            session.add(Document(**metadata))
         session.commit()
     except Exception as exc:
         session.rollback()
