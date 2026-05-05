@@ -129,12 +129,11 @@ User Question
 
 **Key files:**
 ```
-collector/
-  phase1_extraction/
-    pipeline.py         ← search/extract/store orchestration
-    extractor.py        ← PDF/HTML extraction
-    doc_storage.py      ← PostgreSQL + Backblaze B2 storage
-    kb_loader.py        ← GNEM Excel → PostgreSQL loader
+phase1_extraction/
+  extractor.py          ← parses source documents
+  enricher.py           ← Tavily web enrichment
+  db_writer.py          ← writes to PostgreSQL
+  b2_uploader.py        ← uploads to Backblaze B2
 ```
 
 **Database schema (key columns):**
@@ -151,8 +150,8 @@ gev_companies (
 
 **Run:**
 ```powershell
-venv\Scripts\python -m collector.phase1_extraction.pipeline --load-only
-venv\Scripts\python -m collector.phase1_extraction.pipeline
+venv\Scripts\python phase1_extraction\extractor.py
+venv\Scripts\python phase1_extraction\enricher.py
 ```
 
 ---
@@ -171,8 +170,8 @@ venv\Scripts\python -m collector.phase1_extraction.pipeline
 
 **Run:**
 ```powershell
-venv\Scripts\python -m collector.phase2_embedding.pipeline --companies-only
-venv\Scripts\python -m collector.phase2_embedding.pipeline
+venv\Scripts\python phase2_vectorstore\embed_companies.py
+venv\Scripts\python phase2_vectorstore\validate_qdrant.py
 ```
 
 ---
@@ -189,8 +188,8 @@ venv\Scripts\python -m collector.phase2_embedding.pipeline
 
 **Run:**
 ```powershell
-venv\Scripts\python -m collector.phase3_graph.pipeline
-venv\Scripts\python collector\scripts\smoke_test_phase3.py
+venv\Scripts\python phase3_graph\graph_loader.py
+venv\Scripts\python phase3_graph\validate_graph.py
 ```
 
 ---
@@ -201,18 +200,18 @@ venv\Scripts\python collector\scripts\smoke_test_phase3.py
 
 **This is the core of the system. Key design choices:**
 
-#### 4a. Entity Extractor (`generator/phase4_agent/entity_extractor.py`)
+#### 4a. Entity Extractor (`phase4_agent/entity_extractor.py`)
 - **Zero LLM calls** — pure deterministic extraction
 - Loads real DB values at startup (tiers, counties, OEMs, roles, company names) via `@lru_cache`
 - Extracts: tier, county, OEM (supports multi-OEM), role (supports multi-role), employment range, product keywords, risk flags
 - Intent detection: `is_aggregate`, `is_risk_query`, `is_oem_dependency`, `is_capacity_risk`, `is_top_n`
 
-#### 4b. SQL Retriever (`generator/phase4_agent/sql_retriever.py`)
+#### 4b. SQL Retriever (`phase4_agent/sql_retriever.py`)
 - **Zero LLM calls** — pure SQLAlchemy
 - Handles: tier filtering (exact vs compound), multi-OEM OR queries, employment range filters, county filters, industry group filters
 - Schema-agnostic: new DB columns are automatically passed through
 
-#### 4c. Pipeline (`generator/phase4_agent/pipeline.py`)
+#### 4c. Pipeline (`phase4_agent/pipeline.py`)
 Routing logic — decides which retrieval path to take:
 
 ```
@@ -227,7 +226,7 @@ Priority order:
 8. Semantic fallback   → Qdrant vector search
 ```
 
-#### 4d. Streaming Synthesis (`generator/phase4_agent/streaming.py`)
+#### 4d. Streaming Synthesis (`phase4_agent/streaming.py`)
 - **1 LLM call** per question
 - Dynamic prompt: injects exact row count to prevent LLM stopping early
 - Compact format for >10 rows (saves ~34s on large result sets)
@@ -237,7 +236,10 @@ Priority order:
 **Run:**
 ```powershell
 # Quick smoke test (10 tough questions)
-venv\Scripts\python generator\scripts\smoke_test_v2.py
+venv\Scripts\python scripts\smoke_test_v2.py
+
+# Validate full Phase 4 pipeline
+venv\Scripts\python scripts\validate_phase4.py
 ```
 
 ---
@@ -264,10 +266,10 @@ venv\Scripts\python generator\scripts\smoke_test_v2.py
 **Run:**
 ```powershell
 # Validate Phase 5 components
-venv\Scripts\python generator\scripts\validate_phase5.py
+venv\Scripts\python scripts\validate_phase5.py
 
 # Check few-shot contamination before eval
-venv\Scripts\python generator\scripts\run_format_eval.py --format 3 --model qwen2.5:7b --check-contamination
+venv\Scripts\python scripts\run_format_eval.py --format 3 --model qwen2.5:7b --check-contamination
 ```
 
 ---
@@ -338,12 +340,12 @@ venv\Scripts\python scripts\run_format_eval.py --format 4 --model gemma3:12b --q
 
 # Generate HTML comparison dashboard
 venv\Scripts\python scripts\generate_dashboard.py
-# → Opens: generator/outputs/dashboard/comparison_report.html
+# → Opens: outputs/dashboard/comparison_report.html
 ```
 
 ### Dashboard
 
-The HTML dashboard (`generator/outputs/dashboard/comparison_report.html`) is a **self-contained single file** — no server needed, open directly in browser.
+The HTML dashboard (`outputs/dashboard/comparison_report.html`) is a **self-contained single file** — no server needed, open directly in browser.
 
 **Business view tabs:**
 - **Overview** — radar chart + bar chart + score comparison table
@@ -383,77 +385,62 @@ docker run -p 6333:6333 qdrant/qdrant
 
 ```powershell
 # Phase 1 — Extract & store company data
-venv\Scripts\python -m collector.phase1_extraction.pipeline
+venv\Scripts\python phase1_extraction\extractor.py
+venv\Scripts\python phase1_extraction\enricher.py
 
 # Phase 2 — Build vector store
-venv\Scripts\python -m collector.phase2_embedding.pipeline
+venv\Scripts\python phase2_vectorstore\embed_companies.py
 
 # Phase 3 — Build knowledge graph
-venv\Scripts\python -m collector.phase3_graph.pipeline
+venv\Scripts\python phase3_graph\graph_loader.py
 
 # Phase 4 — Validate RAG pipeline
-venv\Scripts\python generator\scripts\smoke_test_v2.py
+venv\Scripts\python scripts\validate_phase4.py
+venv\Scripts\python scripts\smoke_test_v2.py
 
 # Phase 5 — Validate few-shot store
-venv\Scripts\python generator\scripts\validate_phase5.py
+venv\Scripts\python scripts\validate_phase5.py
 
 # Evaluation — Run all formats
-venv\Scripts\python generator\scripts\run_format_eval.py --format 3 --model qwen2.5:7b --questions 50
+venv\Scripts\python scripts\run_format_eval.py --format 3 --model qwen2.5:7b --questions 50
 
 # Dashboard
-venv\Scripts\python generator\scripts\generate_dashboard.py
+venv\Scripts\python scripts\generate_dashboard.py
 ```
 
 ---
 
 ## Environment Setup
 
-Create a `.env` file in the project root from the tracked template:
-
-```bash
-cp example.env .env
-```
-
-Then replace the placeholder values:
+Create a `.env` file in the project root:
 
 ```env
-# PostgreSQL
-DATABASE_URL=postgresql+psycopg2://user:password@host:5432/dbname
+# PostgreSQL (Neon)
+DATABASE_URL=postgresql+psycopg2://user:password@host/dbname
 
 # Neo4j
 NEO4J_URI=bolt://localhost:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=change-me
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your_password
 
 # Qdrant
-QDRANT_URL=http://localhost:6333
-QDRANT_API_KEY=change-me
-QDRANT_COLLECTION_NAME=georgia_ev_chunks
-QDRANT_DENSE_VECTOR_NAME=dense
-QDRANT_SPARSE_VECTOR_NAME=sparse
-QDRANT_VECTOR_DIMENSIONS=768
+QDRANT_HOST=localhost
+QDRANT_PORT=6333
+QDRANT_COLLECTION=georgia_ev_companies
+QDRANT_FEWSHOT_COLLECTION=ev_fewshot_examples
 
 # Ollama
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_LLM_MODEL=qwen2.5:7b
-OLLAMA_CYPHER_MODEL=gemma3:4b
-OLLAMA_LLM_FALLBACK=llama3.1:8b
 OLLAMA_EMBED_MODEL=nomic-embed-text
 
-# Tavily (collector web search/extract + generator Format 4 web enrichment)
-# Preferred: paste all available keys here, comma-separated. The code rotates
-# to the next key when Tavily returns quota/credit/rate-limit/auth failures.
-TAVILY_API_KEYS=tvly-key-1,tvly-key-2,tvly-key-3,tvly-key-4,tvly-key-5,tvly-key-6
+# Tavily (for Format 4 web enrichment)
+TAVILY_API_KEY=tvly-your-key-here
 
-# Single-key fallback also works:
-# TAVILY_API_KEY=tvly-your-key-here
-
-# Backblaze B2
+# Backblaze B2 (Phase 1 storage)
+B2_KEY_ID=your_key_id
+B2_APPLICATION_KEY=your_application_key
 B2_BUCKET_NAME=georgia-ev-docs
-B2_ENDPOINT_URL=https://s3.us-east-005.backblazeb2.com
-B2_REGION=us-east-005
-B2_ACCESS_KEY_ID=change-me
-B2_SECRET_ACCESS_KEY=change-me
 ```
 
 ### GPU / Model recommendations
@@ -472,23 +459,43 @@ B2_SECRET_ACCESS_KEY=change-me
 ```
 georgia_ev_intelligence/
 │
-├── collector/                  # KB/data generation side
-│   ├── config/                 # settings.yaml
-│   ├── phase1_extraction/      # GNEM load, web search/extraction, document storage
-│   ├── phase2_embedding/       # chunking, Ollama embeddings, Qdrant corpus upload
-│   ├── phase3_graph/           # Neo4j graph build/load
-│   ├── shared/                 # config, DB models, B2, logging utilities
-│   ├── scripts/                # collector smoke tests, migrations, data checks
-│   └── tests/                  # collector/shared/embedding tests
+├── phase1_extraction/          # Data extraction & enrichment
+├── phase2_vectorstore/         # Qdrant embeddings
+├── phase3_graph/               # Neo4j knowledge graph
 │
-├── generator/                  # RAG answer generation side
-│   ├── api/                    # FastAPI REST + streaming API
-│   ├── phase4_agent/           # retrieval routing + SQL/Cypher + synthesis
-│   ├── phase5_fewshot/         # few-shot example store and retriever
-│   ├── phase5_ui/              # UI placeholder package
-│   ├── evaluate/               # format runners and LLM-as-judge evaluator
-│   ├── scripts/                # RAG smoke tests, evaluations, dashboard generation
-│   └── outputs/                # evaluation results, dashboards, few-shot store
+├── phase4_agent/               # Core RAG pipeline
+│   ├── entity_extractor.py     # Deterministic entity extraction
+│   ├── sql_retriever.py        # PostgreSQL SQLAlchemy queries
+│   ├── pipeline.py             # Routing + orchestration (EVAgent)
+│   └── streaming.py            # LLM synthesis with streaming
+│
+├── phase5_fewshot/             # Few-shot RAG store
+│   ├── embedder.py             # Embedding interface
+│   ├── qdrant_store.py         # Few-shot Qdrant collection
+│   └── training_data/          # 40 verified Q→SQL pairs
+│
+├── evaluate/                   # Evaluation framework
+│   ├── format_runner.py        # F1/F2/F3/F4 pipeline variants
+│   └── ragas_judge.py          # LLM-as-judge scorer
+│
+├── scripts/                    # CLI scripts
+│   ├── smoke_test_v2.py        # 10 tough questions quick test
+│   ├── validate_phase4.py      # Phase 4 validation suite
+│   ├── validate_phase5.py      # Phase 5 validation suite
+│   ├── run_format_eval.py      # Multi-format evaluator (50Q)
+│   └── generate_dashboard.py   # HTML report generator
+│
+├── shared/                     # Shared utilities
+│   ├── config.py               # Config with @lru_cache
+│   ├── db.py                   # SQLAlchemy session + Company model
+│   └── logger.py               # Structured logging
+│
+├── api/                        # FastAPI REST + streaming API
+│   └── main.py
+│
+├── outputs/                    # Evaluation results
+│   ├── format_eval/            # JSONL results per format+model
+│   └── dashboard/              # HTML comparison report
 │
 ├── .env                        # Environment configuration
 ├── requirements.txt
