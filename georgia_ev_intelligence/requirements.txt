@@ -39,10 +39,14 @@ uvicorn[standard]>=0.30.0 # ASGI server
 websockets>=12.0          # Streaming support
 jinja2>=3.1.0             # HTML templating
 
-# ── Evaluation (custom LLM-as-judge — NO ragas library) ──────
-# Pattern adopted from ev_data_LLM_comparsions/src/evaluator.py
-# Judge: qwen2.5:14b via Ollama local
-# Metrics: faithfulness, answer_relevancy, context_precision, context_recall, answer_correctness
+# ── sreeja-arch: LLM Comparison + Official RAGAS evaluation ──
+# Replaces the previous custom LLM-as-judge with the official
+# `ragas` Python package; judge LLM is Kimi 2.6 (OpenAI-compatible)
+# wired via langchain-openai. Cross-encoder reranker via
+# sentence-transformers is mandatory for all RAG modes.
+ragas>=0.2.0
+langchain-openai>=0.2.0
+sentence-transformers>=3.0.0
 
 # ── Phase 5: Few-Shot RAG ─────────────────────────────────────
 # qdrant-client already listed above (Phase 2)
