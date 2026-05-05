@@ -69,28 +69,78 @@ class Company(Base):
 # ── Table: documents ─────────────────────────────────────────────────────────
 class Document(Base):
     """
-    Every downloaded document tracked here.
-    Maps to a Backblaze B2 object key.
+    Every downloaded document tracked here. Maps to a Backblaze B2 object key.
+
+    Schema mirrors RAG_Data_Management_Framework.xlsx → Document_Registry sheet
+    (Document_ID, Source, Source_URL, File_Path, File_Size_MB, Page_Count,
+    Date_Published, Date_Acquired, Date_Processed, Processing_Status, Language,
+    Contains_Tables, Contains_Images, Confidentiality, Retention_Period,
+    Owner, Quality_Score, Notes) so each row exports straight into the
+    framework without remapping.
     """
     __tablename__ = "gev_documents"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    document_uid = Column(String(100), unique=True, index=True)  # DOC_000123 style ID
+
+    # Company linkage
     company_id = Column(Integer, ForeignKey("gev_companies.id"), nullable=True, index=True)
-    company_name = Column(String(500), index=True)   # Denormalized for speed
+    company_name = Column(String(500), index=True)
+
+    # Source / provenance
+    source = Column(String(500))                 # Publisher / domain
     source_url = Column(String(2000), nullable=False)
-    b2_key = Column(String(500))                     # Backblaze B2 object key
-    content_type = Column(String(100))               # application/pdf, text/html, etc.
-    content_hash_sha256 = Column(String(64), index=True)  # Deduplication
+    search_query = Column(String(500))           # Tavily query that found this
+    search_query_family = Column(Integer)        # 1..8 — see query_generator
+    relevance_score = Column(Float)              # 0..1 from Tavily
+
+    # File / B2
+    b2_key = Column(String(500))
+    b2_bucket = Column(String(200))
+    file_path = Column(String(500))              # Local path during processing (if any)
+    file_name = Column(String(500))              # Inferred original filename
+    file_extension = Column(String(20))          # .pdf / .html / .txt
+    content_type = Column(String(100))           # MIME (application/pdf, text/html)
+    content_hash_sha256 = Column(String(64), index=True)
     file_size_bytes = Column(BigInteger)
-    document_type = Column(String(100))              # Press Release, SEC Filing, Gov Report, etc.
-    relevance_score = Column(Float)                  # 0.0-1.0 from searcher
-    extraction_status = Column(String(50), default="pending")  # pending, extracted, failed
-    extraction_error = Column(Text)
+    file_size_mb = Column(Float)
+
+    # Document classification
+    document_name = Column(String(500))          # Human-friendly title
+    document_type = Column(String(100))          # PDF / HTML / DOCX / CSV / JSON
+    category = Column(String(200))               # Industry Reports / Financial Data / ...
+    sub_category = Column(String(200))           # Automotive / SEC Filing / Press Release / ...
+
+    # Body characteristics
+    page_count = Column(Integer)
     word_count = Column(Integer)
-    search_query = Column(String(500))               # Query that found this doc
+    char_count = Column(Integer)
+    language = Column(String(20), default="English")
+    contains_tables = Column(Boolean, default=False)
+    contains_images = Column(Boolean, default=False)
+
+    # Dates
+    date_published = Column(DateTime)
+    date_acquired = Column(DateTime, default=datetime.utcnow)
+    date_processed = Column(DateTime)
     downloaded_at = Column(DateTime, default=datetime.utcnow)
     extracted_at = Column(DateTime)
+
+    # Governance
+    confidentiality = Column(String(50), default="Public")
+    retention_period = Column(String(50), default="Permanent")
+    owner = Column(String(200), default="Georgia EV Intelligence Pipeline")
+
+    # Pipeline state
+    extraction_method = Column(String(50))       # pymupdf / tavily_extract
+    extraction_status = Column(String(50), default="pending")
+    extraction_error = Column(Text)
+    processing_status = Column(String(50), default="Completed")
+    quality_score = Column(Float)                # 0..100
+    notes = Column(Text)
+
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     company = relationship("Company", back_populates="documents")

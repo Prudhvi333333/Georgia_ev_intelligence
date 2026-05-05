@@ -1,8 +1,19 @@
 """
-Tavily API key rotation.
+Tavily API client with multi-key rotation.
 
-Reads all configured Tavily keys, observes failed quota/rate/auth responses,
-and retries with the next available key in the same process.
+Reads N Tavily keys from .env and transparently rotates to the next key when
+the active one returns a quota / rate-limit / auth failure. Once a key is
+disabled it stays disabled for the lifetime of the process so we don't burn
+cycles re-trying it. The pipeline checkpoints its progress separately so the
+run can resume from where it stopped, even after every key is exhausted.
+
+Supported .env layouts (any of these works):
+
+  TAVILY_API_KEYS=tvly-key-1,tvly-key-2,tvly-key-3
+  TAVILY_API_KEY_1=tvly-key-1
+  TAVILY_API_KEY_2=tvly-key-2
+  ...
+  TAVILY_API_KEY=tvly-only-key   # single-key fallback
 """
 from __future__ import annotations
 
@@ -11,12 +22,20 @@ from typing import Any
 
 import httpx
 
-from collector.shared.config import Config
-from collector.shared.logger import get_logger
+from shared.config import Config
+from shared.logger import get_logger
 
 logger = get_logger("shared.tavily")
 
+
+class TavilyAllKeysExhausted(RuntimeError):
+    """Raised when every configured Tavily key has been disabled."""
+
+
+# HTTP statuses that mean "this key is bad / quota gone, try another one"
 _ROTATABLE_STATUS_CODES = {401, 402, 403, 429, 432}
+
+# Phrases inside a Tavily response body / error payload that mean the same
 _ROTATABLE_ERROR_MARKERS = (
     "api key",
     "auth",
@@ -30,6 +49,8 @@ _ROTATABLE_ERROR_MARKERS = (
     "quota",
     "rate",
     "unauthorized",
+    "expired",
+    "invalid key",
 )
 
 
@@ -72,17 +93,27 @@ def _is_rotatable_payload(payload: Any) -> bool:
 
 
 class TavilyKeyObserver:
-    """Process-local observer for Tavily key health and rotation."""
+    """Process-local observer that tracks which Tavily keys are still healthy."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._keys = Config.get().tavily_api_keys
+        self._keys: list[str] = list(Config.get().tavily_api_keys)
         self._active_index = 0
         self._disabled: set[str] = set()
+        if self._keys:
+            logger.info(
+                "Tavily client loaded %d key(s): %s",
+                len(self._keys),
+                ", ".join(_mask_key(k) for k in self._keys),
+            )
 
     @property
     def keys(self) -> list[str]:
         return list(self._keys)
+
+    @property
+    def healthy_keys(self) -> list[str]:
+        return [k for k in self._keys if k not in self._disabled]
 
     def active_key(self) -> str:
         with self._lock:
@@ -97,7 +128,11 @@ class TavilyKeyObserver:
                 if key not in self._disabled:
                     self._active_index = idx
                     return key
-            raise RuntimeError("All configured Tavily API keys appear exhausted or invalid.")
+            raise TavilyAllKeysExhausted(
+                "All configured Tavily API keys are exhausted. "
+                "Add more keys to .env (TAVILY_API_KEYS=...) and re-run — "
+                "the pipeline will resume from its checkpoint."
+            )
 
     def mark_failed(self, key: str, reason: str) -> None:
         with self._lock:
@@ -106,7 +141,10 @@ class TavilyKeyObserver:
             self._disabled.add(key)
             if key in self._keys:
                 self._active_index = (self._keys.index(key) + 1) % len(self._keys)
-        logger.warning("Tavily key %s disabled after failure: %s", _mask_key(key), reason[:180])
+        logger.warning(
+            "Tavily key %s disabled (%s). Falling back to next key.",
+            _mask_key(key), reason[:200],
+        )
 
 
 _observer: TavilyKeyObserver | None = None
@@ -122,7 +160,7 @@ def get_tavily_observer() -> TavilyKeyObserver:
 
 
 def reset_tavily_observer() -> None:
-    """Force reload of Tavily keys. Useful after changing .env in tests."""
+    """Force reload of Tavily keys. Useful after .env edits in tests."""
     global _observer
     with _observer_lock:
         _observer = None
@@ -136,9 +174,13 @@ async def async_tavily_post(
     """
     POST to a Tavily endpoint with automatic key rotation.
 
-    endpoint examples:
+    Endpoint examples:
       - "https://api.tavily.com/search"
       - "https://api.tavily.com/extract"
+
+    Raises:
+        TavilyAllKeysExhausted: every configured key has been disabled.
+        httpx.HTTPStatusError: a non-rotatable HTTP error.
     """
     observer = get_tavily_observer()
     attempts = max(1, len(observer.keys))
@@ -146,7 +188,10 @@ async def async_tavily_post(
 
     async with httpx.AsyncClient(timeout=timeout) as client:
         for _ in range(attempts):
-            key = observer.active_key()
+            try:
+                key = observer.active_key()
+            except TavilyAllKeysExhausted:
+                raise
             try:
                 response = await client.post(endpoint, json={**payload, "api_key": key})
                 if _is_rotatable_failure(response):
@@ -174,9 +219,11 @@ async def async_tavily_post(
                     continue
                 raise
 
-    if last_exc:
+    if isinstance(last_exc, Exception):
         raise last_exc
-    raise RuntimeError("Tavily request failed before a response was received.")
+    raise TavilyAllKeysExhausted(
+        "Tavily request failed before a response was received and no keys remain."
+    )
 
 
 def tavily_post(
@@ -191,7 +238,10 @@ def tavily_post(
 
     with httpx.Client(timeout=timeout) as client:
         for _ in range(attempts):
-            key = observer.active_key()
+            try:
+                key = observer.active_key()
+            except TavilyAllKeysExhausted:
+                raise
             try:
                 response = client.post(endpoint, json={**payload, "api_key": key})
                 if _is_rotatable_failure(response):
@@ -219,6 +269,8 @@ def tavily_post(
                     continue
                 raise
 
-    if last_exc:
+    if isinstance(last_exc, Exception):
         raise last_exc
-    raise RuntimeError("Tavily request failed before a response was received.")
+    raise TavilyAllKeysExhausted(
+        "Tavily request failed before a response was received and no keys remain."
+    )

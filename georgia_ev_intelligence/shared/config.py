@@ -66,7 +66,42 @@ class Config:
     # ── Tavily ───────────────────────────────────────────────
     @property
     def tavily_api_key(self) -> str:
-        return self._require("TAVILY_API_KEY")
+        """First Tavily key — kept for back-compat with single-key callers."""
+        keys = self.tavily_api_keys
+        if not keys:
+            raise EnvironmentError(
+                "No Tavily key configured. Set TAVILY_API_KEYS, "
+                "TAVILY_API_KEY_1..N, or TAVILY_API_KEY in .env."
+            )
+        return keys[0]
+
+    @property
+    def tavily_api_keys(self) -> list[str]:
+        """
+        All Tavily keys, in priority order, deduped.
+
+        Recognized formats:
+          TAVILY_API_KEYS=tvly-k1,tvly-k2,tvly-k3
+          TAVILY_API_KEY_1=tvly-k1 ... TAVILY_API_KEY_10=tvly-k10
+          TAVILY_API_KEY=tvly-k1   (single-key fallback)
+        """
+        raw_values: list[str] = []
+        csv_value = os.environ.get("TAVILY_API_KEYS", "")
+        if csv_value:
+            raw_values.extend(csv_value.split(","))
+        for idx in range(1, 11):
+            raw_values.append(os.environ.get(f"TAVILY_API_KEY_{idx}", ""))
+        raw_values.append(os.environ.get("TAVILY_API_KEY", ""))
+
+        keys: list[str] = []
+        seen: set[str] = set()
+        for raw in raw_values:
+            key = raw.strip()
+            if not key or "XXXXX" in key or key in seen:
+                continue
+            keys.append(key)
+            seen.add(key)
+        return keys
 
     # ── Qdrant ───────────────────────────────────────────────
     @property
