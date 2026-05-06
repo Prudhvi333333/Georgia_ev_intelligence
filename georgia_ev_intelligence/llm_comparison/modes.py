@@ -6,8 +6,7 @@ retrieved_count, rerank_top_n, generation_elapsed_s, prompt_used,
 tavily_used, error).
 
 LLM calls go straight to Ollama's /api/generate at temperature=0. Tavily
-calls are issued directly (we don't import evaluate.format_runner because
-it loads the heavy shared.config singleton at import time).
+calls reuse evaluate.format_runner's per-question helper.
 """
 from __future__ import annotations
 
@@ -48,42 +47,22 @@ def _call_ollama(model: str, prompt: str, base_url: str, timeout: float = 600.0)
 
 
 # ── Tavily web search (mode 4 only) ─────────────────────────────────────────
+# We reuse evaluate.format_runner._tavily_search_structured so the per-question
+# Tavily call has a single source of truth. Imported lazily so a missing
+# dependency only matters when mode 4 is actually requested.
 
-def _tavily_search(question: str, api_key: str) -> tuple[str, list[dict[str, str]]]:
-    """Return (formatted_context_string, [{title,url}, ...]). Empty on error."""
+def _run_tavily(question: str, api_key: str) -> tuple[str, list[dict[str, str]]]:
     if not api_key:
-        return "", []
-    try:
-        from tavily import TavilyClient
-    except ImportError as exc:
+        raise RuntimeError("TAVILY_API_KEY is required for rag_pretrained_web.")
+    from evaluate.format_runner import _tavily_search_structured
+
+    web_context, sources = _tavily_search_structured(question, api_key=api_key)
+    if not web_context.strip():
         raise RuntimeError(
-            "tavily-python is not installed. Run: pip install tavily-python"
-        ) from exc
-
-    try:
-        client = TavilyClient(api_key=api_key)
-        result = client.search(
-            query=f"Georgia EV supply chain {question}",
-            max_results=3,
-            search_depth="basic",
+            "Tavily returned no web context for rag_pretrained_web; "
+            "cannot satisfy the all-three-sources mode."
         )
-    except Exception as exc:
-        logger.warning("Tavily search failed: %s", exc)
-        return "", []
-
-    items = result.get("results") or []
-    sources: list[dict[str, str]] = []
-    blocks: list[str] = []
-    for item in items:
-        title = (item.get("title") or "").strip()
-        url = (item.get("url") or "").strip()
-        content = (item.get("content") or "").strip()
-        if not content:
-            continue
-        sources.append({"title": title, "url": url})
-        truncated = content[:600]
-        blocks.append(f"[{title}] {truncated} (source: {url})")
-    return "\n".join(blocks), sources
+    return web_context, sources
 
 
 # ── Mode runners ────────────────────────────────────────────────────────────
@@ -133,7 +112,7 @@ def run_mode(
             actual_rerank_top_n = min(rerank_top_n, retrieved_count)
             internal_context = format_context(hits)
             if mode == "rag_pretrained_web":
-                web_context, web_sources = _tavily_search(question, cfg.tavily_api_key)
+                web_context, web_sources = _run_tavily(question, cfg.tavily_api_key)
                 tavily_used = True
             else:
                 web_context, web_sources = "", []

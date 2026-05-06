@@ -36,7 +36,10 @@ from shared.logger import get_logger
 
 logger = get_logger("evaluate.format_runner")
 
-_cfg = Config.get()
+# Module-level Config.get() was removed deliberately: it forced unrelated
+# env vars (Neo4j, Postgres, B2) to be present at import time, which blocked
+# importing _tavily_search from light-weight pipelines like
+# llm_comparison/. Each function fetches its own Config lazily.
 
 
 # ── Format 1: Only RAG — strict context-only synthesis ───────────────────────
@@ -267,32 +270,60 @@ def _call_llm(prompt: str, max_tokens: int = 500, model: str | None = None) -> s
         return f"[LLM error: {exc}]"
 
 
-def _tavily_search(question: str) -> str:
+def _resolve_tavily_key(api_key: str | None) -> str:
+    """Return an explicit api_key when provided, else fall back to Config.
+
+    Lazy fallback so callers that already have a key (e.g. the sreeja-arch
+    llm_comparison pipeline) can avoid the heavier Config.get() that
+    requires unrelated env vars to be set.
     """
-    Run Tavily web search for the question.
-    Returns formatted string of top results.
-    """
+    if api_key:
+        return api_key
+    try:
+        cfg = Config.get()
+    except Exception:
+        return ""
+    return getattr(cfg, "tavily_api_key", "") or ""
+
+
+def _tavily_search_structured(
+    question: str,
+    api_key: str | None = None,
+) -> tuple[str, list[dict[str, str]]]:
+    """Run Tavily web search and return (formatted_text, [{title,url}, ...])."""
+    key = _resolve_tavily_key(api_key)
+    if not key:
+        return "", []
     try:
         from tavily import TavilyClient
-        cfg = Config.get()
-        if not getattr(cfg, "tavily_api_key", None):
-            return ""
-        client = TavilyClient(api_key=cfg.tavily_api_key)
+
+        client = TavilyClient(api_key=key)
         results = client.search(
             query=f"Georgia EV supply chain {question}",
             max_results=3,
             search_depth="basic",
         )
-        snippets = []
-        for r in results.get("results", []):
-            title = r.get("title", "")
-            content = r.get("content", "")[:300]
-            url = r.get("url", "")
-            snippets.append(f"[{title}] {content} (source: {url})")
-        return "\n\n".join(snippets)
     except Exception as exc:
         logger.warning("Tavily search failed: %s", exc)
-        return ""
+        return "", []
+
+    snippets: list[str] = []
+    sources: list[dict[str, str]] = []
+    for r in results.get("results", []) or []:
+        title = (r.get("title") or "").strip()
+        content = (r.get("content") or "")[:300]
+        url = (r.get("url") or "").strip()
+        if not content:
+            continue
+        snippets.append(f"[{title}] {content} (source: {url})")
+        sources.append({"title": title, "url": url})
+    return "\n\n".join(snippets), sources
+
+
+def _tavily_search(question: str, api_key: str | None = None) -> str:
+    """Compatibility wrapper that returns only the formatted string."""
+    text, _ = _tavily_search_structured(question, api_key=api_key)
+    return text
 
 
 def check_few_shot_contamination(

@@ -1,16 +1,17 @@
-"""sreeja-arch generation CLI.
+"""sreeja-arch LLM comparison CLI.
 
 Runs (model x mode x question) generations and writes
 georgia_ev_intelligence/outputs/llm_comparison/<run_id>/generations.xlsx.
-
-This script does NOT evaluate. Use scripts/run_llm_evaluation.py for that.
+By default it then evaluates that workbook with scripts/run_llm_evaluation.py.
+Use --generation-only or --evaluation-only to split those stages.
 
 Example:
     python -m georgia_ev_intelligence.scripts.run_llm_comparison \\
         --run-id smoke_001 \\
         --models qwen2.5:14b gemma3:27b \\
         --modes rag_only no_rag rag_pretrained rag_pretrained_web \\
-        --question-ids 5 7
+        --question-ids 5 7 \\
+        --judge-model "$JUDGE_MODEL"
 """
 from __future__ import annotations
 
@@ -75,8 +76,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--top-k", type=int, default=8, help="Dense retrieval top-K before rerank.")
     p.add_argument("--rerank-top-n", type=int, default=4, help="Final number of context chunks.")
     p.add_argument("--resume", action="store_true", help="Skip rows already in generations.xlsx without errors.")
+    p.add_argument("--generation-only", action="store_true", help="Only generate generations.xlsx.")
+    p.add_argument("--evaluation-only", action="store_true", help="Only evaluate an existing generations.xlsx.")
+    p.add_argument("--judge-model", default=None, help="Override JUDGE_MODEL for evaluation.")
+    p.add_argument("--judge-base-url", default=None, help="Override JUDGE_BASE_URL for evaluation.")
+    p.add_argument("--ragas-embedding-model", default=None, help="Override OLLAMA_EMBED_MODEL for RAGAS.")
     p.add_argument("--questions-path", default=str(QUESTIONS_PATH), help="Path to the 50-question xlsx.")
-    return p.parse_args()
+    args = p.parse_args()
+    if args.generation_only and args.evaluation_only:
+        p.error("--generation-only and --evaluation-only are mutually exclusive")
+    return args
 
 
 def load_questions(path: Path, ids: list[int] | None, cap: int) -> list[dict]:
@@ -108,18 +117,14 @@ def load_questions(path: Path, ids: list[int] | None, cap: int) -> list[dict]:
     return rows
 
 
-def main() -> int:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(name)s %(levelname)s %(message)s",
-        datefmt="%H:%M:%S",
-    )
-    args = parse_args()
-
-    cfg = load_generation_config(embedding_model_override=args.embedding_model)
-
+def run_generation(args: argparse.Namespace) -> Path | None:
     # Hard fail if reranker can't load (mandatory for all RAG modes).
     needs_rerank = any(m in args.modes for m in ("rag_only", "rag_pretrained", "rag_pretrained_web"))
+    cfg = load_generation_config(
+        embedding_model_override=args.embedding_model,
+        require_qdrant=needs_rerank,
+    )
+
     if needs_rerank:
         logger.info("Loading mandatory cross-encoder %s ...", cfg.reranker_model)
         ensure_reranker(cfg.reranker_model)
@@ -132,7 +137,7 @@ def main() -> int:
     questions = load_questions(Path(args.questions_path), args.question_ids, args.questions)
     if not questions:
         logger.error("No questions selected. Check --question-ids / --questions / xlsx contents.")
-        return 2
+        return None
 
     out_dir = OUTPUT_ROOT / args.run_id
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -188,8 +193,9 @@ def main() -> int:
                     "retrieved_context": result["retrieved_context"],
                     "web_context": result["web_context"],
                     "web_sources": web_sources_to_str(result["web_sources"]),
+                    "top_k": args.top_k,
                     "retrieved_count": result["retrieved_count"],
-                    "rerank_top_n": result["rerank_top_n"],
+                    "rerank_top_n": args.rerank_top_n,
                     "generation_elapsed_s": result["generation_elapsed_s"],
                     "embedding_model": cfg.embedding_model,
                     "reranker_model": cfg.reranker_model if mode != "no_rag" else "",
@@ -214,7 +220,41 @@ def main() -> int:
         fail_count,
         len(all_rows),
     )
-    return 0
+    return out_path
+
+
+def _run_evaluation_from_args(args: argparse.Namespace) -> Path | None:
+    from scripts.run_llm_evaluation import evaluate_run
+
+    eval_args = argparse.Namespace(
+        run_id=args.run_id,
+        judge_model=args.judge_model,
+        judge_base_url=args.judge_base_url,
+        ragas_embedding_model=args.ragas_embedding_model,
+        resume=args.resume,
+    )
+    return evaluate_run(eval_args)
+
+
+def main() -> int:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    args = parse_args()
+
+    if args.evaluation_only:
+        return 0 if _run_evaluation_from_args(args) is not None else 2
+
+    if run_generation(args) is None:
+        return 2
+
+    if args.generation_only:
+        return 0
+
+    logger.info("Generation finished; starting RAGAS evaluation for run_id=%s", args.run_id)
+    return 0 if _run_evaluation_from_args(args) is not None else 2
 
 
 if __name__ == "__main__":

@@ -60,11 +60,14 @@ class GenerationConfig:
 
 def load_generation_config(
     embedding_model_override: str | None = None,
+    require_qdrant: bool = True,
 ) -> GenerationConfig:
     return GenerationConfig(
         ollama_base_url=_optional("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/"),
-        qdrant_url=_require("QDRANT_URL"),
-        qdrant_api_key=_require("QDRANT_API_KEY"),
+        qdrant_url=_require("QDRANT_URL") if require_qdrant else os.environ.get("QDRANT_URL", "").strip(),
+        qdrant_api_key=_require("QDRANT_API_KEY")
+        if require_qdrant
+        else os.environ.get("QDRANT_API_KEY", "").strip(),
         qdrant_collection=_optional("QDRANT_COLLECTION_NAME", "georgia_ev_chunks"),
         qdrant_dense_name=_optional("QDRANT_DENSE_VECTOR_NAME", "dense"),
         qdrant_sparse_name=_optional("QDRANT_SPARSE_VECTOR_NAME", "sparse"),

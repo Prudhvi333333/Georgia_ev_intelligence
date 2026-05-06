@@ -39,15 +39,37 @@ NO_RAG_SKIP = {"faithfulness", "context_precision", "context_recall"}
 
 
 def _split_contexts(raw: Any) -> list[str]:
+    """Split a stored retrieved_context cell into a list[str] for ragas.
+
+    Pandas returns NaN for empty cells; `str(NaN) == "nan"`, so guarding only
+    against `None` is not enough. We must explicitly check pd.isna() and the
+    literal "nan" sentinel before treating the value as content.
+    """
     if raw is None:
         return []
+    try:
+        if pd.isna(raw):
+            return []
+    except (TypeError, ValueError):
+        pass
     if isinstance(raw, list):
         return [str(x) for x in raw if str(x).strip()]
     text = str(raw).strip()
-    if not text:
+    if not text or text.lower() == "nan":
         return []
     chunks = [c.strip() for c in text.split("\n\n") if c.strip()]
     return chunks or [text]
+
+
+def _is_blank(value: Any) -> bool:
+    if value is None:
+        return True
+    try:
+        if pd.isna(value):
+            return True
+    except (TypeError, ValueError):
+        pass
+    return not str(value).strip()
 
 
 # ── Lazy imports so the module loads even without ragas/langchain_openai ──
@@ -135,34 +157,45 @@ def evaluate_rows(
     out_rows: list[dict[str, Any]] = []
     total = len(gen_df)
     for i, row in enumerate(gen_df.to_dict(orient="records"), start=1):
-        if (row.get("error") or "").strip():
+        err = row.get("error", "")
+        if not _is_blank(err):
             logger.warning(
                 "Skipping row %d (model=%s mode=%s qid=%s): generation error=%s",
-                i, row.get("model"), row.get("mode"), row.get("question_id"), row["error"],
+                i, row.get("model"), row.get("mode"), row.get("question_id"), err,
             )
-            out_rows.append({**_blank_eval_row(row), "notes": f"skipped: {row['error']}"})
+            out_rows.append({**_blank_eval_row(row), "notes": f"skipped: {err}"})
             continue
 
-        question = str(row.get("question") or "")
-        answer = str(row.get("answer") or "")
-        reference = str(row.get("golden_answer") or "")
+        def _safe_str(value: Any) -> str:
+            return "" if _is_blank(value) else str(value)
+
+        question = _safe_str(row.get("question"))
+        answer = _safe_str(row.get("answer"))
+        reference = _safe_str(row.get("golden_answer"))
         contexts = _split_contexts(row.get("retrieved_context"))
-        mode = str(row.get("mode") or "")
+        mode = _safe_str(row.get("mode"))
 
         scores: dict[str, float] = {m: 0.0 for m in ALL_METRICS}
         skipped: set[str] = set()
         notes_parts: list[str] = []
 
-        is_no_rag = (mode == "no_rag") or not contexts
-        if is_no_rag:
+        # Only no_rag mode legitimately runs without contexts. A RAG mode
+        # with zero contexts is a retrieval failure that must hurt the
+        # score rather than be hidden by weight renormalisation.
+        if mode == "no_rag":
             skipped |= NO_RAG_SKIP
             notes_parts.append("no_rag: no retrieved context")
+        elif not contexts:
+            notes_parts.append("retrieval failure: 0 contexts in RAG mode")
 
         sample = _make_sample(question, answer, contexts, reference)
 
         eval_start = time.monotonic()
         for metric_name in ALL_METRICS:
             if metric_name in skipped:
+                continue
+            if not contexts and metric_name in NO_RAG_SKIP:
+                scores[metric_name] = 0.0
                 continue
             try:
                 scores[metric_name] = float(_score_one(metrics[metric_name], sample))

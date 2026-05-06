@@ -74,6 +74,20 @@ def _existing_per_row(report_path: Path) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+def _max_int_col(gen_df: pd.DataFrame, col: str) -> int:
+    if gen_df.empty or col not in gen_df.columns:
+        return 0
+    series = pd.to_numeric(gen_df[col], errors="coerce").dropna()
+    return int(series.max()) if not series.empty else 0
+
+
+def _max_float_col(gen_df: pd.DataFrame, col: str, default: float = 0.0) -> float:
+    if gen_df.empty or col not in gen_df.columns:
+        return default
+    series = pd.to_numeric(gen_df[col], errors="coerce").dropna()
+    return float(series.max()) if not series.empty else default
+
+
 def _build_run_metadata(args, judge_cfg, gen_df: pd.DataFrame) -> pd.DataFrame:
     models = sorted(gen_df["model"].dropna().unique().tolist()) if not gen_df.empty else []
     modes = sorted(gen_df["mode"].dropna().unique().tolist()) if not gen_df.empty else []
@@ -83,6 +97,12 @@ def _build_run_metadata(args, judge_cfg, gen_df: pd.DataFrame) -> pd.DataFrame:
     reranker_models = (
         sorted(set(x for x in gen_df["reranker_model"].dropna().tolist() if x)) if not gen_df.empty else []
     )
+    question_ids = (
+        pd.to_numeric(gen_df["question_id"], errors="coerce").dropna()
+        if not gen_df.empty and "question_id" in gen_df.columns
+        else pd.Series(dtype="float64")
+    )
+    unique_questions = int(question_ids.nunique())
     return pd.DataFrame(
         [
             {
@@ -105,21 +125,17 @@ def _build_run_metadata(args, judge_cfg, gen_df: pd.DataFrame) -> pd.DataFrame:
                 ),
                 "metrics": json.dumps(ALL_METRICS),
                 "total_rows": int(len(gen_df)),
-                "temperature": 0.0,
+                "total_questions": unique_questions,
+                "top_k": _max_int_col(gen_df, "top_k"),
+                "rerank_top_n": _max_int_col(gen_df, "rerank_top_n"),
+                "temperature": _max_float_col(gen_df, "temperature", default=0.0),
                 "timestamp_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             }
         ]
     )
 
 
-def main() -> int:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(name)s %(levelname)s %(message)s",
-        datefmt="%H:%M:%S",
-    )
-    args = parse_args()
-
+def evaluate_run(args: argparse.Namespace) -> Path | None:
     judge_cfg = load_judge_config(
         judge_model_override=args.judge_model,
         judge_base_url_override=args.judge_base_url,
@@ -136,7 +152,7 @@ def main() -> int:
     gen_df = read_generations(gen_path)
     if gen_df.empty:
         logger.error("No rows in %s; nothing to evaluate.", gen_path)
-        return 2
+        return None
 
     report_path = OUTPUT_ROOT / "ragas_reports" / f"{args.run_id}.xlsx"
     report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -181,7 +197,17 @@ def main() -> int:
         len(per_row),
         judge_cfg.judge_model,
     )
-    return 0
+    return report_path
+
+
+def main() -> int:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    args = parse_args()
+    return 0 if evaluate_run(args) is not None else 2
 
 
 if __name__ == "__main__":

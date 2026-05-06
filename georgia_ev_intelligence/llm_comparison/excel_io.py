@@ -24,6 +24,7 @@ GENERATION_COLUMNS = [
     "retrieved_context",
     "web_context",
     "web_sources",
+    "top_k",
     "retrieved_count",
     "rerank_top_n",
     "generation_elapsed_s",
@@ -60,14 +61,41 @@ def write_workbook_atomic(sheets: dict[str, pd.DataFrame], path: Path) -> None:
     os.replace(tmp, path)
 
 
+_STRING_COLS = {
+    "run_id", "category", "question", "golden_answer", "model", "mode",
+    "answer", "retrieved_context", "web_context", "web_sources",
+    "embedding_model", "reranker_model", "prompt_used", "timestamp_utc",
+    "error",
+}
+
+
 def read_generations(path: Path) -> pd.DataFrame:
+    """Read generations.xlsx and normalise NaN to empty strings for string
+    columns. Without this, downstream consumers crash on `(NaN or '').strip()`
+    and `_split_contexts(NaN)` returns the literal string 'nan'.
+    """
     if not path.exists():
         return pd.DataFrame(columns=GENERATION_COLUMNS)
     df = pd.read_excel(path, sheet_name="generations", engine="openpyxl")
     for col in GENERATION_COLUMNS:
         if col not in df.columns:
             df[col] = ""
+    # Cast string columns to object dtype, then fill NaN with "".
+    for col in _STRING_COLS:
+        if col in df.columns:
+            df[col] = df[col].astype(object).where(df[col].notna(), "")
     return df
+
+
+def _is_blank_error(err) -> bool:
+    if err is None:
+        return True
+    try:
+        if pd.isna(err):
+            return True
+    except (TypeError, ValueError):
+        pass
+    return not str(err).strip()
 
 
 def completed_keys(df: pd.DataFrame) -> set[tuple[str, str, int]]:
@@ -76,8 +104,7 @@ def completed_keys(df: pd.DataFrame) -> set[tuple[str, str, int]]:
         return set()
     keys: set[tuple[str, str, int]] = set()
     for _, row in df.iterrows():
-        err = row.get("error", "")
-        if isinstance(err, str) and err.strip():
+        if not _is_blank_error(row.get("error", "")):
             continue
         try:
             qid = int(row["question_id"])
