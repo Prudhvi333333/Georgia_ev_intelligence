@@ -165,8 +165,8 @@ class EVAgent:
 
         if is_aggregate:
             logger.info("Routing to Text-to-SQL (aggregate question)")
-            from phase4_agent.text_to_sql import text_to_sql
-            sql_query = text_to_sql(question)
+            from phase4_agent.text_to_sql import generate_sql
+            sql_query = generate_sql(question)
             if sql_query and sql_query.upper().startswith("SELECT"):
                 try:
                     from shared.db import get_session
