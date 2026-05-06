@@ -167,28 +167,24 @@ ORDER BY c.employment DESC
 """
 
 # ── Cypher generation prompt ──────────────────────────────────────────────────
-_CYPHER_PROMPT = """You are a Neo4j Cypher expert for the Georgia EV Supply Chain Intelligence System.
+_CYPHER_PROMPT = """You are a Principal Knowledge Graph Architect for the Georgia EV Supply Chain Intelligence System.
+Your objective is to translate a user's natural language question into a highly accurate, performant Neo4j Cypher query.
 
-GRAPH SCHEMA:
+GRAPH SCHEMA AND VALUE DOMAINS:
 {schema}
 
-EXAMPLE QUESTION-TO-CYPHER PAIRS:
+FEW-SHOT EXAMPLES:
 {examples}
 
-STRICT RULES:
-1. Return ONLY the raw Cypher query — NO explanation, NO markdown, NO backticks
-2. ALWAYS alias c.name AS company_name in the RETURN clause
-3. Use toLower() + CONTAINS for string matching (case-insensitive)
-4. Always add IS NOT NULL check before CONTAINS on nullable fields
-5. Use LIMIT 50 to prevent huge result sets
-6. For multi-hop: MATCH multiple patterns on the same variable c
-7. For product/text search: search c.products_services (full text on node)
-   AND also (c)-[:MANUFACTURES]->(p:Product) when appropriate
-8. For county: match both c.location_county directly AND via [:LOCATED_IN]->(l:Location)
-9. NEVER use c.company_name — the property is c.name
+CRITICAL RULES FOR CYPHER GENERATION:
+1. RAW OUTPUT ONLY: Return exactly the raw executable Cypher string. Do not include markdown blocks, backticks, or explanatory text.
+2. ALIASING: You MUST ALWAYS alias the returned company name as `c.name AS company_name` so the downstream parser catches it. Do NOT use `c.company_name` in the MATCH.
+3. CASE-INSENSITIVE MATCHING: When matching string fields, use `toLower(field) CONTAINS 'value'` to ensure robustness.
+4. NULL SAFETY: Cypher throws errors on nulls. ALWAYS include `field IS NOT NULL` before calling `toLower(field)` or `CONTAINS`.
+5. MULTI-HOP QUERIES: If the user asks for cross-domain relationships (e.g., OEMs and locations), MATCH multiple patterns on the same base variable `c`.
+6. RESULT CAPPING: Do NOT apply a `LIMIT` clause unless the user specifies a top-N amount (e.g., "Top 5"). Never artificially hide matching nodes.
 
 QUESTION: {question}
-
 CYPHER:"""
 
 
