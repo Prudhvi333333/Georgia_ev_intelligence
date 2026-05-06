@@ -16,16 +16,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from phase2_embedding.chunker import (
+    COMPANY_CHUNK_SCHEMA_VERSION,
     Chunk,
     chunk_company_record,
     chunk_document,
     get_child_chunks,
     get_parent_chunk,
+    _company_source_hash,
     _estimate_tokens,
-    _build_sparse_vector,
     CHILD_CHAR_TARGET,
     PARENT_CHAR_TARGET,
 )
+from phase2_embedding.index_freshness import audit_company_index
 from phase2_embedding.embedder import embed_single, embed_texts, verify_ollama_embed
 from phase2_embedding.vector_store import (
     ensure_collection_exists,
@@ -87,19 +89,28 @@ class TestChunker(unittest.TestCase):
         est = _estimate_tokens(text)
         self.assertAlmostEqual(est, 100, delta=5)
 
-    def test_company_chunk_creates_one_chunk(self):
-        """Each company produces exactly 1 chunk."""
+    def test_company_chunk_creates_multi_view_chunks(self):
+        """Each company produces a master chunk plus focused semantic views."""
         doc_text = build_document_text(SAMPLE_COMPANY)
         chunks = chunk_company_record(SAMPLE_COMPANY, doc_text)
-        self.assertEqual(len(chunks), 1)
-        self.assertEqual(chunks[0].chunk_type, "company")
-        self.assertIsNone(chunks[0].parent_id)
+        self.assertGreaterEqual(len(chunks), 3)
+        self.assertTrue(all(chunk.chunk_type == "company" for chunk in chunks))
+        self.assertTrue(all(chunk.parent_id is None for chunk in chunks))
+        view_names = {chunk.metadata.get("chunk_view") for chunk in chunks}
+        self.assertIn("master", view_names)
+        self.assertIn("role", view_names)
+        self.assertIn("product", view_names)
+        self.assertIn("oem", view_names)
+        self.assertIn("classification", view_names)
+        self.assertIn("capability", view_names)
+        self.assertIn("location", view_names)
 
     def test_company_chunk_metadata_complete(self):
-        """Company chunk metadata must include all key fields."""
+        """Master company chunk metadata must include all key fields."""
         doc_text = build_document_text(SAMPLE_COMPANY)
         chunks = chunk_company_record(SAMPLE_COMPANY, doc_text)
-        meta = chunks[0].metadata
+        master = next(chunk for chunk in chunks if chunk.metadata.get("chunk_view") == "master")
+        meta = master.metadata
         required_fields = [
             "company_name", "tier", "ev_supply_chain_role",
             "location_county", "employment", "ev_battery_relevant",
@@ -109,12 +120,41 @@ class TestChunker(unittest.TestCase):
             self.assertIn(field, meta, f"Missing metadata field: {field}")
         self.assertEqual(meta["source_type"], "gnem_excel")
         self.assertEqual(meta["company_name"], "Test EV Battery LLC")
+        self.assertTrue(meta["company_row_id"])
+        self.assertEqual(meta["chunk_view"], "master")
+        self.assertEqual(meta["kb_schema_version"], COMPANY_CHUNK_SCHEMA_VERSION)
+        self.assertTrue(meta["source_row_hash"])
+        self.assertIn("company_context_text", meta)
+        self.assertEqual(meta["products_services_full"], SAMPLE_COMPANY["products_services"])
+
+    def test_company_chunk_ids_are_stable(self):
+        """Company chunk ids must be deterministic for idempotent Qdrant upserts."""
+        doc_text = build_document_text(SAMPLE_COMPANY)
+        first = chunk_company_record(SAMPLE_COMPANY, doc_text)
+        second = chunk_company_record(SAMPLE_COMPANY, doc_text)
+        self.assertEqual([chunk.chunk_id for chunk in first], [chunk.chunk_id for chunk in second])
+
+    def test_company_source_hash_changes_with_source_fields(self):
+        """Source hash must change when a source field changes."""
+        changed = dict(SAMPLE_COMPANY)
+        changed["products_services"] = "Changed battery module description"
+        self.assertNotEqual(_company_source_hash(SAMPLE_COMPANY), _company_source_hash(changed))
+
+    def test_company_product_payload_keeps_full_source_text(self):
+        """Long product text should remain available in payload for context recall."""
+        company = dict(SAMPLE_COMPANY)
+        company["products_services"] = " ".join(["battery module enclosure"] * 40)
+        chunks = chunk_company_record(company, build_document_text(company))
+        master = next(chunk for chunk in chunks if chunk.metadata.get("chunk_view") == "master")
+        self.assertEqual(master.metadata["products_services"], company["products_services"])
+        self.assertEqual(master.metadata["products_services_full"], company["products_services"])
 
     def test_company_chunk_contains_all_text(self):
-        """Company chunk text must include company name, tier, location."""
+        """Master company chunk text must include company name, tier, location."""
         doc_text = build_document_text(SAMPLE_COMPANY)
         chunks = chunk_company_record(SAMPLE_COMPANY, doc_text)
-        text = chunks[0].text
+        master = next(chunk for chunk in chunks if chunk.metadata.get("chunk_view") == "master")
+        text = master.text
         self.assertIn("Test EV Battery LLC", text)
         self.assertIn("Tier 1", text)
         self.assertIn("Chatham County", text)
@@ -220,6 +260,56 @@ class TestChunker(unittest.TestCase):
             self.assertEqual(meta["company_name"], "Hyundai Metaplant")
 
 
+class TestIndexFreshness(unittest.TestCase):
+    """Test offline Qdrant freshness audit logic."""
+
+    def _master_payload(self, company: dict, **overrides):
+        doc_text = build_document_text(company)
+        chunks = chunk_company_record(company, doc_text)
+        master = next(chunk for chunk in chunks if chunk.metadata.get("chunk_view") == "master")
+        return {**master.metadata, **overrides}
+
+    def test_company_index_audit_ok_for_matching_master(self):
+        """Matching KB row and Qdrant master payload should pass."""
+        payload = self._master_payload(SAMPLE_COMPANY)
+        audit = audit_company_index(
+            kb_companies=[SAMPLE_COMPANY],
+            qdrant_records=[{"payload": payload}],
+        )
+        self.assertTrue(audit["ok"])
+        self.assertEqual(audit["expected_rows"], 1)
+        self.assertEqual(audit["indexed_master_rows"], 1)
+
+    def test_company_index_audit_flags_stale_missing_extra_duplicate(self):
+        """Audit should identify freshness failures without Qdrant access."""
+        other_company = dict(SAMPLE_COMPANY)
+        other_company["id"] = 10000
+        other_company["company_name"] = "Other Battery Co"
+
+        stale_payload = self._master_payload(
+            SAMPLE_COMPANY,
+            source_row_hash="old-hash",
+            kb_schema_version="old-schema",
+        )
+        duplicate_payload = dict(stale_payload)
+        extra_payload = self._master_payload(other_company)
+
+        audit = audit_company_index(
+            kb_companies=[SAMPLE_COMPANY],
+            qdrant_records=[
+                {"payload": stale_payload},
+                {"payload": duplicate_payload},
+                {"payload": extra_payload},
+            ],
+        )
+
+        self.assertFalse(audit["ok"])
+        self.assertIn(stale_payload["company_row_id"], audit["stale_row_ids"])
+        self.assertIn(stale_payload["company_row_id"], audit["duplicate_row_ids"])
+        self.assertIn(extra_payload["company_row_id"], audit["extra_row_ids"])
+        self.assertIn(stale_payload["company_row_id"], audit["stale_schema_row_ids"])
+
+
 class TestSparseVector(unittest.TestCase):
     """Test sparse vector generation."""
 
@@ -259,9 +349,9 @@ class TestEmbedder(unittest.TestCase):
         cls.embed_dims = result["dimensions"]
 
     def test_embed_single_returns_correct_dimensions(self):
-        """Single text embedding should return 768-dim vector."""
+        """Single text embedding should match the configured vector dimensions."""
         vector = embed_single("Georgia EV supply chain battery manufacturer")
-        self.assertEqual(len(vector), 768)
+        self.assertEqual(len(vector), self.embed_dims)
 
     def test_embed_single_returns_floats(self):
         """Embedding vector should contain floats."""
@@ -278,7 +368,7 @@ class TestEmbedder(unittest.TestCase):
         vectors = embed_texts(texts)
         self.assertEqual(len(vectors), len(texts))
         for v in vectors:
-            self.assertEqual(len(v), 768)
+            self.assertEqual(len(v), self.embed_dims)
 
     def test_embed_chunks_returns_dict(self):
         """embed_chunks should return dict mapping chunk_id → vector."""
@@ -288,7 +378,7 @@ class TestEmbedder(unittest.TestCase):
         vectors = embed_chunks(chunks)
         self.assertEqual(len(vectors), len(chunks))
         for chunk_id, vec in vectors.items():
-            self.assertEqual(len(vec), 768)
+            self.assertEqual(len(vec), self.embed_dims)
 
     def test_same_text_similar_embeddings(self):
         """Same text should produce very similar embeddings (cosine ≈ 1.0)."""

@@ -43,8 +43,6 @@ Jefferson Southern Corp. [Tier 1/2] | Role: General Automotive | Product: High c
 
 Highest total employment county: Harris County (723 + 800 = 1523)
 
-**Scores**: faithfulness=0.600 | relevancy=0.600 | precision=1.000 | recall=0.500 | correctness=0.600 | **final=0.660**
-
 ---
 
 ## Q2 [Supply Chain Mapping & Visibility] — 15.3s
@@ -121,8 +119,6 @@ The highest-total county employment is **Harris County** with 723 employees.
 
 
 
-**Scores**: faithfulness=0.500 | relevancy=0.800 | precision=1.000 | recall=0.830 | correctness=0.500 | **final=0.726**
-
 ---
 
 ## Q3 [Supply Chain Mapping & Visibility] — 14.3s
@@ -190,8 +186,6 @@ Hall County has the highest total employment related to these thermal management
 
 
 
-**Scores**: faithfulness=0.600 | relevancy=0.800 | precision=0.800 | recall=1.000 | correctness=0.400 | **final=0.730**
-
 ---
 
 ## Q4 [Supply Chain Mapping & Visibility] — 10.7s
@@ -240,8 +234,6 @@ ZF Gainesville LLC has a combined role (EV thermal management and power electron
    * Products: Automotive supplier division (mobility solutions: ADAS, powe
 
 
-**Scores**: faithfulness=0.800 | relevancy=0.800 | precision=1.000 | recall=1.000 | correctness=0.500 | **final=0.835**
-
 ---
 
 ## Q5 [Supply Chain Mapping & Visibility] — 0.7s
@@ -261,8 +253,6 @@ Thermal Ceramics Inc. | EV Supply Chain Role: Vehicle Assembly
 Thomson Plastics Inc. | EV Supply Chain Role: Vehicle Assembly
 
 **Generated**: No companies found.
-
-**Scores**: faithfulness=0.000 | relevancy=0.000 | precision=0.000 | recall=0.000 | correctness=0.000 | **final=0.000**
 
 ---
 
@@ -311,8 +301,6 @@ Thomson Plastics Inc. | EV Supply Chain Role: Vehicle Assembly
 
 **Highest Total County Employment:** Fulton County (260 + 205 + 200 = 665)
 
-**Scores**: faithfulness=1.000 | relevancy=0.800 | precision=1.000 | recall=1.000 | correctness=0.000 | **final=0.810**
-
 ---
 
 ## Q7 [Supply Chain Mapping & Visibility] — 2.6s
@@ -328,8 +316,6 @@ Employment: 250000
 Primary_OEMs: 
 Facility: Manufacturing / Engineering
 Products: Vehicle power & data solutions; wiring harnesses and connect
-
-**Scores**: faithfulness=0.800 | relevancy=0.800 | precision=1.000 | recall=1.000 | correctness=0.800 | **final=0.880**
 
 ---
 
@@ -353,8 +339,6 @@ Products: Vehicle power & data solutions; wiring harnesses and connect
 13. Unknown County | Tier 1 |  | Unknown County | 720
 14. Gwinnett County | Tier 1 |  | Gwinnett
 
-**Scores**: faithfulness=1.000 | relevancy=0.800 | precision=1.000 | recall=1.000 | correctness=1.000 | **final=0.960**
-
 ---
 
 ## Q9 [Supply Chain Mapping & Visibility] — 11.0s
@@ -377,8 +361,6 @@ Products: Vehicle power & data solutions; wiring harnesses and connect
 13. Troup County |  |  | Troup County | 4,157
 14. Fulton County |  |  | Fulton County | 4,065
 1
-
-**Scores**: faithfulness=1.000 | relevancy=0.800 | precision=1.000 | recall=1.000 | correctness=1.000 | **final=0.960**
 
 ---
 
@@ -489,8 +471,6 @@ Thomson Plastics Inc. | Primary OEMs: Archer Aviation Inc.
     * Facility: Manufacturing Plant
     * Products: Electric vertical
 
-**Scores**: faithfulness=0.800 | relevancy=0.500 | precision=0.800 | recall=1.000 | correctness=0.500 | **final=0.735**
-
 ---
 
 ## Q11 [Supply Chain Mapping & Visibility] — 11.9s
@@ -545,8 +525,6 @@ The highest-total county employment for Sewon America Inc. is Troup County, with
 
 
 
-**Scores**: faithfulness=0.500 | relevancy=0.800 | precision=1.000 | recall=1.000 | correctness=0.670 | **final=0.786**
-
 ---
 
 ## Q12 [Supply Chain Mapping & Visibility] — 10.8s
@@ -592,8 +570,6 @@ The highest-total employment by county is **Jackson County** with a combined 405
 
 
 
-
-**Scores**: faithfulness=0.800 | relevancy=0.800 | precision=1.000 | recall=1.000 | correctness=0.670 | **final=0.861**
 
 ---
 
@@ -668,8 +644,6 @@ Suzuki Manufacturing of America Corp. [OEM] | Role: Vehicle Assembly | Primary O
 
 Jackson County has the highest total employment with a combined 405 employees (Ducky
 
-**Scores**: faithfulness=0.800 | relevancy=0.800 | precision=1.000 | recall=0.800 | correctness=0.800 | **final=0.840**
-
 ---
 
 ## Q14 [Supply Chain Mapping & Visibility] — 6.4s
@@ -701,8 +675,6 @@ IMMI [Tier 1/2]  | Produce: Battery electrolyte
 *   **Facility:** Manufacturing Plant
 *   **Products:** Recycler of copper, precious metals, and non-ferrous materia
 
-**Scores**: faithfulness=0.500 | relevancy=0.750 | precision=0.500 | recall=0.500 | correctness=0.500 | **final=0.550**
-
 ---
 
 ## Q15 [Supply Chain Mapping & Visibility] — 6.2s
@@ -731,8 +703,6 @@ Woodbridge Foam Corp. | Primary OEMs: n/a
    * Products: Automotive wiring harnesses & electrical distribution system
 
 Highest-total county employment: Gwinnett County (250000)
-
-**Scores**: faithfulness=0.500 | relevancy=0.800 | precision=1.000 | recall=0.500 | correctness=0.600 | **final=0.675**
 
 ---
 
@@ -764,8 +734,6 @@ IMMI [Tier 1/2] | OEMs: Hyundai Kia | Produces: Battery electrolyte
    * Products: Lithium-ion battery recycler and raw materials provider
 
 Highest-total county employment: Pulaski County (400)
-
-**Scores**: faithfulness=0.500 | relevancy=0.750 | precision=0.500 | recall=0.500 | correctness=0.500 | **final=0.550**
 
 ---
 
@@ -805,8 +773,6 @@ Woodbridge Foam Corp. | Role: EV wiring harnesses and power distribution | Produ
 
 Highest-total county employment: Gwinnett County (250000)
 
-**Scores**: faithfulness=0.800 | relevancy=1.000 | precision=1.000 | recall=1.000 | correctness=0.800 | **final=0.920**
-
 ---
 
 ## Q18 [Supplier Discovery & Matchmaking] — 1.2s
@@ -815,8 +781,6 @@ Highest-total county employment: Gwinnett County (250000)
 **Golden**: There are no Georgia Tier 2/3 companies listed under the Electronic and Other Electrical Equipment and Components industry group. So none can be upgraded to supply EV power electronics based on the provided evidence.
 
 **Generated**: No matching companies found.
-
-**Scores**: faithfulness=1.000 | relevancy=0.200 | precision=1.000 | recall=0.000 | correctness=1.000 | **final=0.640**
 
 ---
 
@@ -857,8 +821,6 @@ Duckyang | Produce: High-quality electrodeposited (ED) copper foil for electric 
 
 Highest total employment by county: Jackson County (250)
 
-**Scores**: faithfulness=0.500 | relevancy=0.600 | precision=0.500 | recall=0.500 | correctness=0.500 | **final=0.520**
-
 ---
 
 ## Q20 [Supplier Discovery & Matchmaking] — 0.7s
@@ -867,8 +829,6 @@ Highest total employment by county: Jackson County (250)
 **Golden**: No Georgia Tier 1/2 companies are explicitly identified as producing engineered plastics, polymers, or composite materials applicable to EV structural or thermal components.
 
 **Generated**: No companies found.
-
-**Scores**: faithfulness=1.000 | relevancy=0.300 | precision=1.000 | recall=1.000 | correctness=1.000 | **final=0.860**
 
 ---
 
@@ -929,8 +889,6 @@ Racemark International LLC
 
 Highest-total county employment: Pulaski County (400)
 
-**Scores**: faithfulness=0.600 | relevancy=0.800 | precision=0.300 | recall=0.360 | correctness=0.636 | **final=0.537**
-
 ---
 
 ## Q22 [Supplier Discovery & Matchmaking] — 10.1s
@@ -977,8 +935,6 @@ The highest-total county employment among these companies is **Troup County** wi
 
 
 
-**Scores**: faithfulness=0.750 | relevancy=0.600 | precision=0.800 | recall=0.670 | correctness=0.670 | **final=0.702**
-
 ---
 
 ## Q23 [Supplier Discovery & Matchmaking] — 3.1s
@@ -995,8 +951,6 @@ Archer Aviation Inc. [Tier 2/3] | Produces: Powder coatings for automotive and o
    * **Primary_OEMs:** Multiple OEMs
    * **Facility:** Manufacturing Plant
    * **Products:** Powder coatings for automotive and other industries
-
-**Scores**: faithfulness=0.800 | relevancy=1.000 | precision=1.000 | recall=1.000 | correctness=0.800 | **final=0.920**
 
 ---
 
@@ -1086,8 +1040,6 @@ IMMI | OEMs: Hyundai Kia
    * Facility: Manufacturing Plant
    * Products: High current switches
 
-**Scores**: faithfulness=0.500 | relevancy=0.400 | precision=0.500 | recall=0.000 | correctness=0.000 | **final=0.305**
-
 ---
 
 ## Q25 [Supplier Discovery & Matchmaking] — 13.2s
@@ -1169,8 +1121,6 @@ Products: Sensors for mobile hydraulic applications
 
 Highest-total county: Gwinnett County (with a combined employment of 582 + 345 = 927)
 
-**Scores**: faithfulness=0.800 | relevancy=0.800 | precision=1.000 | recall=0.875 | correctness=0.625 | **final=0.829**
-
 ---
 
 ## Q26 [Supplier Discovery & Matchmaking] — 7.3s
@@ -1202,8 +1152,6 @@ Arising Industries Inc. | Product: Rubber powders for tires
    * Products: Powder coatings for automotive and other industries
 
 Highest-total county employment (based on provided data): Gwinnett County + Morgan County = 270 total employment.
-
-**Scores**: faithfulness=0.500 | relevancy=0.800 | precision=1.000 | recall=1.000 | correctness=0.500 | **final=0.760**
 
 ---
 
@@ -1253,8 +1201,6 @@ Role: Vehicle safety systems OEM (EV + ICE) → Only company: TI Fluid Systems
 10. Valeo | OEM Supply Chain | Tier 1 automotive components |  | 269
 11. Vista Metals Corp. | OEM Supply Chain | EV and ICE component manufacturing | Bartow County | 1500
 
-
-**Scores**: faithfulness=0.600 | relevancy=0.600 | precision=0.600 | recall=0.600 | correctness=0.300 | **final=0.555**
 
 ---
 
@@ -1331,8 +1277,6 @@ The highest-total county employment related to these suppliers is **Harris Count
 
 
 
-**Scores**: faithfulness=0.800 | relevancy=0.800 | precision=1.000 | recall=1.000 | correctness=0.800 | **final=0.880**
-
 ---
 
 ## Q29 [Supply Chain Risk & Resilience] — 14.6s
@@ -1406,8 +1350,6 @@ Racemark International LLC | Employment: 120
 
 
 
-**Scores**: faithfulness=1.000 | relevancy=1.000 | precision=1.000 | recall=1.000 | correctness=1.000 | **final=1.000**
-
 ---
 
 ## Q30 [Supply Chain Risk & Resilience] — 31.9s
@@ -1454,8 +1396,6 @@ Enchem America Inc. | OEMs: Hyundai Kia Rivian
 35. Enchem America Inc. | Tier 2/3 | General Automotive | Jackson County | 155
 36. Enplas USA Inc. | Tier 
 
-**Scores**: faithfulness=0.000 | relevancy=0.200 | precision=0.000 | recall=0.000 | correctness=0.000 | **final=0.040**
-
 ---
 
 ## Q31 [Supply Chain Risk & Resilience] — 11.3s
@@ -1487,8 +1427,6 @@ Jefferson Southern Corp.
 11. Hyundai & LG Energy Solution (LGES) | Tier 1/2 | General Automotive | Chatham County | 250
 
 Highest total employment county: Harris County (800 employees)
-
-**Scores**: faithfulness=1.000 | relevancy=0.900 | precision=1.000 | recall=1.000 | correctness=1.000 | **final=0.980**
 
 ---
 
@@ -1528,8 +1466,6 @@ Facility: Manufacturing Plant
 Products: Stamped blanks Flexible metal hoses for exhaust systems, the
 
 Highest-total county employment: Troup County (130 + 160 = 290)
-
-**Scores**: faithfulness=0.800 | relevancy=0.800 | precision=0.750 | recall=0.750 | correctness=0.800 | **final=0.780**
 
 ---
 
@@ -1594,8 +1530,6 @@ ZF Gainesville LLC
 24. ZF Gainesville LLC | OEM Supply Chain | EV body, powertrain, and thermal co | Hall County | 170000
 
 Highest-total county employment: Bartow County (19600 + 1500 + 1300 = 22400)
-
-**Scores**: faithfulness=0.800 | relevancy=1.000 | precision=1.000 | recall=1.000 | correctness=1.000 | **final=0.950**
 
 ---
 
@@ -1709,8 +1643,6 @@ ACM Georgia LLC | Employment: 400
 
 The highest-total county based on employment from this list is **Laurens County** (total employment of 1200 from Lark United Manufacturing Inc. and Dinex Emissions Inc.).
 
-**Scores**: faithfulness=0.600 | relevancy=0.800 | precision=0.800 | recall=0.800 | correctness=0.800 | **final=0.750**
-
 ---
 
 ## Q35 [Product & Technology Trends] — 13.4s
@@ -1771,8 +1703,6 @@ The highest-total county based on employment from this list is **Laurens County*
    * Products: Lithium-ion battery recycler and raw materials provider
 
 Highest-total county employment: Harris County (723)
-
-**Scores**: faithfulness=0.800 | relevancy=0.800 | precision=0.800 | recall=0.800 | correctness=0.600 | **final=0.770**
 
 ---
 
@@ -1846,8 +1776,6 @@ Global Powertrain Systems LLC | Product: Motor vehicle brake systems and parts F
 
 Laurens County has the highest total employment among these companies (500 + 128 = 628).
 
-**Scores**: faithfulness=0.800 | relevancy=0.700 | precision=1.000 | recall=0.857 | correctness=0.700 | **final=0.816**
-
 ---
 
 ## Q37 [Product & Technology Trends] — 2.1s
@@ -1857,8 +1785,6 @@ Laurens County has the highest total employment among these companies (500 + 128
 GSC Steel Stamping LLC | Product: DC-to-DC converters
 
 **Generated**: GSC Steel Stamping LLC | Tier 2/3 | Power Electronics | Bartow County | 350 | Hyundai Kia Rivian | Manufacturing Plant | Deep grove ball bearings Toyota Industries Electric Systems
-
-**Scores**: faithfulness=0.500 | relevancy=0.500 | precision=0.500 | recall=0.000 | correctness=0.500 | **final=0.400**
 
 ---
 
@@ -1900,8 +1826,6 @@ Textron Specialized Vehicles | Employment: 1100 | Role: Vehicle Assembly
    * Products: Golf carts, utility vehicles, industrial vehicles
 
 Highest-total county employment: Schley County (3000)
-
-**Scores**: faithfulness=1.000 | relevancy=1.000 | precision=1.000 | recall=1.000 | correctness=1.000 | **final=1.000**
 
 ---
 
@@ -1946,8 +1870,6 @@ Peerless-Winsmith Inc.: 160 employees
 
 
 
-
-**Scores**: faithfulness=0.800 | relevancy=0.800 | precision=1.000 | recall=0.750 | correctness=0.750 | **final=0.823**
 
 ---
 
@@ -2014,8 +1936,6 @@ Hall County has the highest total employment related to these companies, with a 
 
 
 
-
-**Scores**: faithfulness=0.800 | relevancy=0.900 | precision=1.000 | recall=1.000 | correctness=0.600 | **final=0.870**
 
 ---
 
@@ -2086,8 +2006,6 @@ Products: Automotive body parts and electronics Cylinder-head and spec
 
 Highest-total county: Troup County (280 total employment)
 
-**Scores**: faithfulness=0.800 | relevancy=0.500 | precision=0.800 | recall=1.000 | correctness=0.000 | **final=0.660**
-
 ---
 
 ## Q42 [Product & Technology Trends] — 14.4s
@@ -2152,8 +2070,6 @@ Peerless-Winsmith Inc. | Employment: 160
 
 
 
-**Scores**: faithfulness=0.600 | relevancy=0.700 | precision=0.800 | recall=0.800 | correctness=0.500 | **final=0.685**
-
 ---
 
 ## Q43 [Product & Technology Trends] — 11.3s
@@ -2170,8 +2086,6 @@ F&P Georgia Manufacturing | Product: Lithium-ion battery recycler and raw materi
 
 Highest-total county: Cobb County (150 employees)
 
-**Scores**: faithfulness=0.800 | relevancy=1.000 | precision=1.000 | recall=0.670 | correctness=1.000 | **final=0.884**
-
 ---
 
 ## Q44 [Product & Technology Trends] — 2.0s
@@ -2181,8 +2095,6 @@ Highest-total county: Cobb County (150 employees)
 Racemark International LLC | Product: Manufacturing and R&D engine parts for EV
 
 **Generated**: 1. Racemark International LLC | Tier 1 | General Automotive | Jones County | 120 | Hyundai Kia Rivian | R&D | Manufacturing and R&D engine parts for EV
-
-**Scores**: faithfulness=1.000 | relevancy=0.900 | precision=1.000 | recall=1.000 | correctness=0.500 | **final=0.905**
 
 ---
 
@@ -2249,8 +2161,6 @@ The highest-total county employment among these companies is **Jackson County** 
 
 
 
-**Scores**: faithfulness=0.800 | relevancy=0.900 | precision=1.000 | recall=1.000 | correctness=0.800 | **final=0.900**
-
 ---
 
 ## Q46 [Site Selection & Expansion Planning] — 6.3s
@@ -2300,8 +2210,6 @@ Walton County
 Whitfield County
 
 
-**Scores**: faithfulness=0.890 | relevancy=0.900 | precision=0.946 | recall=0.949 | correctness=0.800 | **final=0.901**
-
 ---
 
 ## Q47 [Site Selection & Expansion Planning] — 10.2s
@@ -2326,8 +2234,6 @@ Whitfield County
 15. Duluth, Gwinnett County |  | Materials | Gwinnett County | 1
 16. Cartersville, Bartow County |  | Materials | Bartow County | 1
 
-
-**Scores**: faithfulness=0.800 | relevancy=0.700 | precision=1.000 | recall=1.000 | correctness=0.800 | **final=0.860**
 
 ---
 
@@ -2367,8 +2273,6 @@ Jefferson, Jackson County | 3 plants
 18. Dawsonville |  |  | Dawson County | 2
 19. Dalton |  |  | Whitfield County
 
-**Scores**: faithfulness=0.800 | relevancy=0.600 | precision=0.800 | recall=0.800 | correctness=0.300 | **final=0.685**
-
 ---
 
 ## Q49 [Site Selection & Expansion Planning] — 6.8s
@@ -2400,8 +2304,6 @@ Norcross, Gwinnett County: Arising Industries Inc.
 
 Based on the provided data, **Gwinnett County** has the highest total employment (70) related to chemical manufacturing.
 
-**Scores**: faithfulness=0.500 | relevancy=0.600 | precision=0.500 | recall=0.500 | correctness=0.500 | **final=0.520**
-
 ---
 
 ## Q50 [Site Selection & Expansion Planning] — 3.5s
@@ -2418,7 +2320,5 @@ Gray, Jones County | Company: Racemark International LLC | Product: Manufacturin
     *   **Primary_OEMs:** Hyundai Kia Rivian
     *   **Facility:** R&D
     *   **Products:** Manufacturing and R&D engine parts for EV
-
-**Scores**: faithfulness=0.800 | relevancy=0.900 | precision=1.000 | recall=1.000 | correctness=0.800 | **final=0.900**
 
 ---

@@ -45,6 +45,7 @@ from phase2_embedding.embedder import embed_chunks, verify_ollama_embed
 from phase2_embedding.vector_store import (
     ensure_collection_exists,
     get_collection_stats,
+    prune_stale_company_index_chunks,
     upload_chunks,
     verify_qdrant_connection,
 )
@@ -72,7 +73,7 @@ SEPARATOR = "=" * 60
 
 def embed_companies(company_filter: str | None = None, reembed: bool = False) -> dict[str, int]:
     """
-    Embed all 205 GNEM company records into Qdrant.
+    Embed GNEM company records from the source workbook into Qdrant.
 
     Each company → 1 "company" chunk with all metadata fields as payload.
     This gives the agent immediate access to all 205 companies without
@@ -87,7 +88,7 @@ def embed_companies(company_filter: str | None = None, reembed: bool = False) ->
     """
     logger.info("=== Pass 1: Embedding GNEM Company Records ===")
 
-    companies = get_all_companies_from_db()
+    companies = load_companies_from_excel(apply_overrides=False)
     if company_filter:
         companies = [c for c in companies if company_filter.lower() in c["company_name"].lower()]
 
@@ -111,6 +112,25 @@ def embed_companies(company_filter: str | None = None, reembed: bool = False) ->
 
     # Upload to Qdrant
     uploaded = upload_chunks(all_chunks, vectors, parent_chunks=parent_map)
+    if reembed and uploaded == len(all_chunks):
+        if company_filter:
+            for company in companies:
+                company_name = company["company_name"]
+                keep_ids = {
+                    chunk.chunk_id
+                    for chunk in all_chunks
+                    if chunk.metadata.get("company_name") == company_name
+                }
+                prune_stale_company_index_chunks(keep_ids, company_name=company_name)
+        else:
+            keep_ids = {chunk.chunk_id for chunk in all_chunks}
+            prune_stale_company_index_chunks(keep_ids)
+    elif reembed:
+        logger.warning(
+            "Skipping stale company chunk pruning because upload was partial (%d/%d)",
+            uploaded,
+            len(all_chunks),
+        )
 
     logger.info("✅ Pass 1 done: %d company chunks uploaded to Qdrant", uploaded)
     return {"embedded": uploaded, "skipped": 0, "failed": len(all_chunks) - uploaded}

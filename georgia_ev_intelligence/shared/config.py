@@ -5,6 +5,7 @@ Reads .env and config/settings.yaml. Used by every phase.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -78,8 +79,17 @@ class Config:
         return self._require("QDRANT_API_KEY")
 
     @property
-    def qdrant_collection(self) -> str:
+    def qdrant_collection_base(self) -> str:
         return os.environ.get("QDRANT_COLLECTION_NAME", "georgia_ev_chunks")
+
+    @staticmethod
+    def _sanitize_collection_part(value: str) -> str:
+        return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._-") or "default"
+
+    @property
+    def qdrant_collection(self) -> str:
+        embed_model = self._sanitize_collection_part(self.ollama_embed_model)
+        return f"{self.qdrant_collection_base}__{embed_model}"
 
     @property
     def qdrant_dense_name(self) -> str:
@@ -153,6 +163,17 @@ class Config:
     @property
     def ollama_embed_model(self) -> str:
         return os.environ.get("OLLAMA_EMBED_MODEL", "nomic-embed-text")
+
+    @property
+    def reranker_model(self) -> str:
+        return os.environ.get(
+            "CROSS_ENCODER_RERANKER_MODEL",
+            "cross-encoder/ms-marco-MiniLM-L12-v2",
+        )
+
+    @property
+    def reranker_max_candidates(self) -> int:
+        return int(os.environ.get("CROSS_ENCODER_RERANK_TOP_K", "48"))
 
 
     # ── Settings YAML ────────────────────────────────────────
