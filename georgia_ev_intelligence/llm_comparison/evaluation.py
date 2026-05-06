@@ -13,10 +13,22 @@ Final score weights (renormalized when some metrics are skipped):
   context_precision   0.20
   context_recall      0.20
   answer_correctness  0.15
+
+Deterministic set metrics (computed without LLM):
+  gold_companies           — company names found in golden_answer
+  context_companies        — company names found in retrieved_context
+  answer_companies         — company names found in answer
+  context_company_recall   — |gold ∩ context| / |gold|
+  answer_company_recall    — |gold ∩ answer| / |gold|
+  answer_company_precision — |gold ∩ answer| / |answer|
+  answer_company_f1        — harmonic mean of recall and precision
+  count_exact_match        — 1 if golden count integer appears in answer
 """
 from __future__ import annotations
 
 import logging
+import pathlib
+import re
 import time
 from typing import Any
 
@@ -24,7 +36,149 @@ import pandas as pd
 
 from llm_comparison.config import JudgeConfig
 
-logger = logging.getLogger("llm_comparison.ragas_runner")
+logger = logging.getLogger("llm_comparison.evaluation")
+
+# ── Deterministic company-set metrics ────────────────────────────────────────
+
+_KB_PATH = (
+    pathlib.Path(__file__).resolve().parent.parent.parent
+    / "kb"
+    / "GNEM - Auto Landscape Lat Long Updated.xlsx"
+)
+_COMPANY_NAMES: frozenset[str] | None = None
+
+# Strips common corporate suffixes so "Kia Georgia Inc." also matches "Kia Georgia".
+_CORP_SUFFIX = re.compile(
+    r",?\s+(?:inc|llc|ltd|corp|co\.|company|group|corporation|manufacturing|"
+    r"industries|international|solutions|technologies?|systems?|services?|"
+    r"associates?|partners?|ventures?|holdings?)\.?$",
+    re.IGNORECASE,
+)
+
+
+def _normalize_company(name: str) -> str:
+    """Strip common corporate suffixes for lenient matching."""
+    return _CORP_SUFFIX.sub("", name).strip()
+
+
+def _load_company_names() -> frozenset[str]:
+    """Load the canonical company names from the GNEM KB Excel (once).
+
+    Both the full name and the suffix-stripped form are added to the set so
+    that "Kia Georgia" matches KB entry "Kia Georgia Inc."
+    """
+    global _COMPANY_NAMES
+    if _COMPANY_NAMES is not None:
+        return _COMPANY_NAMES
+    try:
+        df = pd.read_excel(_KB_PATH, usecols=["Company"])
+        names_set: set[str] = set()
+        for raw in df["Company"].dropna().tolist():
+            name = str(raw).strip()
+            if not name:
+                continue
+            name_lower = name.lower()
+            names_set.add(name_lower)
+            normalized = _normalize_company(name_lower)
+            if normalized != name_lower and len(normalized) >= 3:
+                names_set.add(normalized)
+        _COMPANY_NAMES = frozenset(names_set)
+        logger.info("Loaded %d company name variants from KB for deterministic metrics", len(_COMPANY_NAMES))
+    except Exception as exc:
+        logger.warning("Could not load company names from KB (%s) — set metrics will be empty", exc)
+        _COMPANY_NAMES = frozenset()
+    return _COMPANY_NAMES
+
+
+def _extract_companies(text: str) -> set[str]:
+    """Return the subset of known company names that appear in text."""
+    names = _load_company_names()
+    if not names or not text:
+        return set()
+    text_lower = text.lower()
+    return {name for name in names if name in text_lower}
+
+
+def _count_exact_match(golden: str, answer: str) -> int:
+    """Return 1 if the expected count from golden appears (normalized) in answer.
+
+    The golden answers often contain supporting numbers after the real count
+    (for example "There are 100 areas... Top concentrations include 7 plants").
+    This function first extracts the count-like number from the opening claim,
+    then falls back to the first normalized number when no count phrase exists.
+    """
+    if not golden or not answer:
+        return 0
+
+    def _norm(num: str) -> str:
+        return num.replace(",", "")
+
+    opening = golden.strip().splitlines()[0]
+    count_patterns = [
+        r"\bthere\s+(?:are|is)\s+(?:only\s+)?(\d[\d,]*|\d)\b",
+        r"\bthere\s+(?:are|is)\s+(?:only\s+)?(\d[\d,]*|\d)\s+[\w‑-]+",
+        r"\bwith\s+a\s+total\s+of\s+(\d[\d,]*|\d)\b",
+        r"\b(?:total|combined employment|employment size)\s+(?:of|:)?\s*(\d[\d,]*|\d)\b",
+        r"\b(\d[\d,]*|\d)\s+(?:georgia|companies|company|suppliers|areas|counties|roles|facilities|plants)\b",
+    ]
+
+    candidates: list[str] = []
+    for pattern in count_patterns:
+        match = re.search(pattern, opening, flags=re.IGNORECASE)
+        if match:
+            candidates.append(_norm(match.group(1)))
+            break
+
+    if not candidates:
+        raw_nums = re.findall(r"\b(\d[\d,]*\d|\d)\b", opening)
+        if not raw_nums:
+            raw_nums = re.findall(r"\b(\d[\d,]*\d|\d)\b", golden)
+        if raw_nums:
+            candidates.append(_norm(raw_nums[0]))
+
+    if not candidates:
+        return 0
+
+    answer_normalized = re.sub(r"\b(\d[\d,]*\d|\d)\b", lambda m: m.group().replace(",", ""), answer.lower())
+    for n in candidates:
+        if re.search(rf"\b{re.escape(n)}\b", answer_normalized):
+            return 1
+    return 0
+
+
+def _company_set_metrics(
+    golden: str,
+    context: str,
+    answer: str,
+) -> dict[str, Any]:
+    gold = _extract_companies(golden)
+    ctx = _extract_companies(context)
+    ans = _extract_companies(answer)
+
+    def recall(pred: set, ref: set) -> float:
+        return round(len(pred & ref) / len(ref), 4) if ref else 0.0
+
+    def precision(pred: set, ref: set) -> float:
+        return round(len(pred & ref) / len(pred), 4) if pred else 0.0
+
+    def f1(p: float, r: float) -> float:
+        return round(2 * p * r / (p + r), 4) if (p + r) > 0 else 0.0
+
+    ctx_recall = recall(ctx, gold)
+    ans_recall = recall(ans, gold)
+    ans_prec = precision(ans, gold)
+    ans_f1 = f1(ans_prec, ans_recall)
+
+    return {
+        "gold_companies": ", ".join(sorted(gold)),
+        "context_companies": ", ".join(sorted(ctx)),
+        "answer_companies": ", ".join(sorted(ans)),
+        "context_company_recall": ctx_recall,
+        "answer_company_recall": ans_recall,
+        "answer_company_precision": ans_prec,
+        "answer_company_f1": ans_f1,
+    }
+
 
 WEIGHTS: dict[str, float] = {
     "faithfulness": 0.25,
@@ -100,18 +254,24 @@ def _build_metrics(judge_llm, judge_embeddings) -> dict[str, Any]:
     """Instantiate the official ragas metrics, keyed by canonical name."""
     from ragas.metrics import (
         AnswerCorrectness,
+        AnswerSimilarity,
         Faithfulness,
         LLMContextPrecisionWithReference,
         LLMContextRecall,
         ResponseRelevancy,
     )
 
+    answer_similarity = AnswerSimilarity(embeddings=judge_embeddings)
     return {
         "faithfulness": Faithfulness(llm=judge_llm),
         "answer_relevancy": ResponseRelevancy(llm=judge_llm, embeddings=judge_embeddings),
         "context_precision": LLMContextPrecisionWithReference(llm=judge_llm),
         "context_recall": LLMContextRecall(llm=judge_llm),
-        "answer_correctness": AnswerCorrectness(llm=judge_llm, embeddings=judge_embeddings),
+        "answer_correctness": AnswerCorrectness(
+            llm=judge_llm,
+            embeddings=judge_embeddings,
+            answer_similarity=answer_similarity,
+        ),
     }
 
 
@@ -210,6 +370,10 @@ def evaluate_rows(
 
         final = _final_score(scores, skipped)
 
+        raw_context = _safe_str(row.get("retrieved_context"))
+        det = _company_set_metrics(reference, raw_context, answer)
+        det["count_exact_match"] = _count_exact_match(reference, answer)
+
         out_rows.append(
             {
                 "run_id": row.get("run_id", ""),
@@ -229,6 +393,7 @@ def evaluate_rows(
                 "judge_model": cfg.judge_model,
                 "eval_elapsed_s": round(eval_elapsed, 3),
                 "notes": "; ".join(notes_parts),
+                **det,
             }
         )
 
@@ -259,12 +424,24 @@ def _blank_eval_row(gen_row: dict) -> dict[str, Any]:
         "judge_model": "",
         "eval_elapsed_s": 0.0,
         "notes": "",
+        "gold_companies": "",
+        "context_companies": "",
+        "answer_companies": "",
+        "context_company_recall": 0.0,
+        "answer_company_recall": 0.0,
+        "answer_company_precision": 0.0,
+        "answer_company_f1": 0.0,
+        "count_exact_match": 0,
     }
 
 
 def build_aggregations(per_row: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """Compute the four aggregation sheets demanded by the spec."""
+    """Compute aggregation sheets for RAGAS metrics and deterministic set metrics."""
     metric_cols = ALL_METRICS + ["final_score"]
+    det_cols = [
+        "context_company_recall", "answer_company_recall",
+        "answer_company_precision", "answer_company_f1", "count_exact_match",
+    ]
 
     if per_row.empty:
         empty = pd.DataFrame(columns=["model", "mode", *metric_cols])
@@ -272,6 +449,7 @@ def build_aggregations(per_row: pd.DataFrame) -> dict[str, pd.DataFrame]:
             "agg_model_mode": empty,
             "agg_model_mode_metric": pd.DataFrame(columns=["model", "mode", "metric", "mean", "std", "n"]),
             "agg_category_mode": pd.DataFrame(columns=["category", "mode", *metric_cols]),
+            "agg_company_set": pd.DataFrame(columns=["model", "mode", *det_cols]),
         }
 
     agg_model_mode = (
@@ -303,8 +481,21 @@ def build_aggregations(per_row: pd.DataFrame) -> dict[str, pd.DataFrame]:
         .reset_index()
     )
 
+    # Deterministic set metrics aggregated by model + mode.
+    available_det = [c for c in det_cols if c in per_row.columns]
+    if available_det:
+        agg_company_set = (
+            per_row.groupby(["model", "mode"])[available_det]
+            .mean()
+            .round(4)
+            .reset_index()
+        )
+    else:
+        agg_company_set = pd.DataFrame(columns=["model", "mode", *det_cols])
+
     return {
         "agg_model_mode": agg_model_mode,
         "agg_model_mode_metric": agg_model_mode_metric,
         "agg_category_mode": agg_category_mode,
+        "agg_company_set": agg_company_set,
     }

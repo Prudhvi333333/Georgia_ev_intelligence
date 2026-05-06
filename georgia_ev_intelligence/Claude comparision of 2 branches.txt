@@ -1,0 +1,1393 @@
+╭─── Claude Code v2.1.128 ─────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│                 Welcome back Surya!                │ started                 │
+│                                                    │ Run /init to create a … │
+│                       ▐▛███▜▌                      │ ─────────────────────── │
+│                      ▝▜█████▛▘                     │ What's new              │
+│                        ▘▘ ▝▝                       │ Added `--plugin-url <u… │
+│ Sonnet 4.6 · Claude Pro · suryatejap24@gmail.com's │ Added `CLAUDE_CODE_FOR… │
+│  Organization                                      │ Added `CLAUDE_CODE_PAC… │
+│            ~/…/georgia_ev_intelligence             │ /release-notes for more │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+❯ /clear                                                                        
+  ⎿  (no content)
+
+❯ /usage                                                                        
+  ⎿  Set model to Default (Sonnet 4.6 · Best for everyday tasks)
+
+❯ /plan                                                                         
+  ⎿  Enabled plan mode
+
+❯ You are reviewing my RAG project with two Git branches:                       
+                                                                                
+  1. new arch                                                                   
+  2. sreeja arch                                                                
+                                                                                
+  My project uses:                                                              
+  - One Excel-sheet knowledge base                                              
+  - 50 human-validated questions                                                
+  - Golden answers created from the same Excel sheet                            
+  - Goal: determine which retrieval and RAG design works best for structured    
+  Excel-based domain QA                                                         
+                                                                                
+  Important context:                                                            
+  The benchmark is not open-world truth. The questions and golden answers are   
+  derived from the Excel data, so evaluation should focus on Excel-grounded     
+  correctness, set completeness, retrieval recall, faithfulness, and answer     
+  precision. Also consider deterministic structured-data evaluation where       
+  possible, because this is more defensible than relying only on LLM judge      
+  scores. :contentReference[oaicite:0]{index=0}                                 
+                                                                                
+  Your tasks:                                                                   
+                                                                                
+  1. Compare both branches deeply                                               
+  Compare `new arch` and `sreeja arch` on:                                      
+                                                                                
+  - chunking strategy                                                           
+  - embedding model                                                             
+  - vector database                                                             
+  - retrieval method                                                            
+  - dense retrieval                                                             
+  - sparse retrieval, if any                                                    
+  - hybrid retrieval, if any                                                    
+  - metadata filtering                                                          
+  - reranker usage                                                              
+  - top-k settings                                                              
+  - query rewriting or query planning                                           
+  - prompt templates                                                            
+  - answer generation logic                                                     
+  - citation/context usage                                                      
+  - evaluation method                                                           
+  - RAGAS usage or custom judge usage                                           
+  - scoring logic                                                               
+  - logging/debugging                                                           
+  - latency and maintainability                                                 
+  - suitability for Excel-sheet QA                                              
+                                                                                
+  Create a comparison table with:                                               
+  - component                                                                   
+  - new arch method                                                             
+  - sreeja arch method                                                          
+  - which is better                                                             
+  - why                                                                         
+  - risks/drawbacks                                                             
+                                                                                
+  2. Review prompts in both branches                                            
+  Find all prompts used in both branches and compare:                           
+                                                                                
+  - retrieval prompts                                                           
+  - reranking prompts                                                           
+  - answer generation prompts                                                   
+  - evaluator/judge prompts                                                     
+  - fallback/no-answer prompts                                                  
+                                                                                
+  Explain:                                                                      
+  - which prompt is stronger                                                    
+  - which prompt causes irrelevant output                                       
+  - which prompt may cause missing answers                                      
+  - how each prompt should be rewritten                                         
+                                                                                
+  3. Diagnose retrieval failure in `sreeja arch`                                
+  My current issue:                                                             
+                                                                                
+  Example: the golden answer has 3 companies, but the final answer gives only 2 
+   companies. The retrieved context and reranker output also miss the 3rd       
+  company.                                                                      
+                                                                                
+  Investigate why this happens:                                                 
+                                                                                
+  Check:                                                                        
+  - chunking problem                                                            
+  - top-k too small                                                             
+  - reranker dropping valid rows                                                
+  - embedding mismatch                                                          
+  - company names split across chunks                                           
+  - Excel rows not indexed correctly                                            
+  - metadata fields not preserved                                               
+  - query does not expand synonyms                                              
+  - exact-match structured filters missing                                      
+  - dense retrieval is weak for structured Excel queries                        
+  - retrieval does not support exhaustive/list questions                        
+  - answer generation only uses partial context                                 
+                                                                                
+  Give concrete fixes                                                           
+  ──── (359 lines hidden) ───────────────────────────────────────────────────── 
+  ly tags anything, that is a real signal — do not patch it by softening the    
+  prompt.                                                                       
+                                                                                
+                                                                                
+  12. Environment                                                               
+  Provide .env.example with these keys (no values):                             
+  OLLAMA_BASE_URL=                                                              
+  QDRANT_URL=                                                                   
+  QDRANT_API_KEY=                                                               
+  TAVILY_API_KEY=                                                               
+  JUDGE_BASE_URL=                                                               
+  JUDGE_API_KEY=                                                                
+  JUDGE_MODEL=                                                                  
+  README must list every variable, what it is, and where to get it.             
+                                                                                
+  13. Acceptance Criteria                                                       
+                                                                                
+  Branch sreeja-arch exists in a separate worktree, branched from main. main    
+  and the previous current branch are untouched.                                
+  The codebase inspection notes from §2 are written into the README.            
+  A single command runs all 50 questions × 2 models × 4 modes and produces      
+  generations.xlsx.                                                             
+  A single command (or the same command without --generation-only) produces     
+  <run_id>.xlsx with all 5 official RAGAS metrics and final_score, judged by    
+  Kimi 2.6.                                                                     
+  The reranker runs in every RAG mode. A reranker load failure aborts the run.  
+  Mode 3 prompts force the model to combine retrieved context and pretrained    
+  knowledge. Mode 4 prompts force the model to combine retrieved context and    
+  pretrained and web. Tagging rules are present and enforced.                   
+  No JSONL files and no HTML dashboard are produced.                            
+  --resume correctly skips completed rows by reading the Excel state.           
+  All secrets come from env vars; nothing secret is committed; .env.example is  
+  provided.                                                                     
+  README has install steps, env var reference, and exact run commands.          
+  Smoke test runs cleanly: 2 question ids × 2 models × 4 modes = 16 generations 
+   + 16 scored rows end-to-end.                                                 
+                                                                                
+                                                                                
+  14. Final Response Requirement — Two Commands                                 
+  After the implementation is complete, your final response must include        
+  exactly two ready-to-paste shell commands, each on its own line, with no      
+  extra wrapping. They must work as-is from the sreeja-arch worktree root.      
+  Command 1 — Run all 50 questions across all 4 pipelines for both models,      
+  end-to-end (generation + evaluation):                                         
+  This single command must produce both generations.xlsx and the scored RAGAS   
+  Excel report covering 2 models × 4 modes × 50 questions.                      
+  Command 2 — Run only specific question numbers across all 4 pipelines for     
+  both models, end-to-end:                                                      
+  This command must accept user-supplied question numbers (the Num column       
+  values, e.g. 5 7 10 22) as the only thing the user changes. The command must  
+  run those questions through all 4 modes for both models, generate, and        
+  evaluate. Show the placeholder clearly, e.g.:                                 
+  ... --question-ids 5 7 10 22 .   Based on these please answer what is asked   
+  and give your suggestions. And also please remove all the unnecessary files,  
+  code and outputs.                                                             
+
+● I'll start by exploring both branches in parallel to understand the codebase
+  structure before planning.
+
+● Explore(Explore sreeja-arch branch structure)
+  ⎿  Done (38 tool uses · 71.3k tokens · 8m 29s)
+  (ctrl+o to expand)
+
+● Now let me explore the new arch branch and look at specific code files that
+  need deep review.
+
+● Explore(Explore new-Arch branch and compare with sreeja-arch)
+  ⎿  Done (27 tool uses · 58.2k tokens · 1m 17s)
+  (ctrl+o to expand)
+
+● Let me read the key files in sreeja-arch to understand the specific issues
+  mentioned.
+
+  Read 5 files (ctrl+o to expand)
+
+● Let me check what's in the new-Arch branch to compare architectures more
+  precisely.
+
+● Bash(git branch -a 2>/dev/null | head -20)
+  ⎿    divider
+       eval-three-modes-ragas
+       main
+     … +9 lines (ctrl+o to expand)
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(git diff --name-only sreeja-arch new-Arch 2>/dev/null | head -50)
+  ⎿  .env.example
+     README_sreeja_arch.md
+     georgia_ev_intelligence/evaluate/evaluator.py
+     … +47 lines (ctrl+o to expand)
+
+● Bash(git show new-Arch:georgia_ev_intelligence/phase4_agent/pipeline.py
+      2>/dev/null | head -100)
+  ⎿  """
+     Phase 4 — Agent Pipeline (V3 Architecture)
+     … +50 lines (ctrl+o to expand)
+
+● Bash(git show
+      new-Arch:georgia_ev_intelligence/phase4_agent/entity_extractor.py
+      2>/dev/null | head -80)
+  ⎿  """
+     Phase 4 — Deterministic Entity Extractor
+     … +33 lines (ctrl+o to expand)
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Bash(git show new-Arch:georgia_ev_intelligence/scripts/run_ragas_eval.py
+      2>/dev/null | head -100)
+  ⎿  """
+     scripts/run_ragas_eval.py — Phase 4 RAGAS Evaluation with checkpoint/r
+     esume.
+     … +58 lines (ctrl+o to expand)
+
+● Bash(git show new-Arch:georgia_ev_intelligence/evaluate/evaluator.py
+      2>/dev/null | head -80)
+  ⎿  """
+     Evaluation — RAGAS-style LLM-as-Judge Evaluator
+     … +36 lines (ctrl+o to expand)
+
+● Now I have enough information to write the comprehensive plan. Let me create
+  it.
+
+● Updated plan
+  ⎿  /plan to preview
+● Now let me exit plan mode to present the full plan for approval.
+
+● User approved Claude's plan
+  ⎿  Plan saved to: ~/.claude/plans/you-are-reviewing-my-sprightly-bunny.md · 
+     /plan to edit
+     Georgia EV Intelligence — Comprehensive RAG Review & Cleanup Plan
+
+     Context
+
+     Reviewing two RAG branches (new-Arch and sreeja-arch) against an
+     Excel-based knowledge base of 205 Georgia EV supply chain companies with 50
+      human-validated QA pairs. The benchmark is internally grounded (questions
+     and golden answers derived from the same Excel), so evaluation must focus
+     on Excel-grounded correctness, retrieval completeness, and structured-data
+     precision — not open-world truth.
+
+     ---
+     A. Branch Comparison Table
+
+     Component: Chunking
+     new-Arch: Multi-view per company (master/role/products/location views) +
+       hierarchical parent-child (256 child / 800 parent)
+     sreeja-arch: Hierarchical parent-child (256 child / 800 parent, single
+     view)
+     Better: new-Arch
+     Why: Multi-view exposes role/product/location facets separately — better
+     recall
+       for facet-specific queries
+     Risk/Drawback: new-Arch increases chunk count 4x; more Qdrant storage
+     ────────────────────────────────────────
+     Component: Embedding
+     new-Arch: nomic-embed-text (768-dim, Ollama)
+     sreeja-arch: nomic-embed-text (768-dim, Ollama)
+     Better: Tie
+     Why: Same model
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Vector DB
+     new-Arch: Qdrant Cloud, dense vectors only in active retrieval
+     sreeja-arch: Qdrant Cloud, dense-only (hybrid available but bypassed)
+     Better: Tie
+     Why: Same underlying store; new-Arch has richer metadata
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Retrieval method
+     new-Arch: Deterministic entity extraction → KB query planner → dense search
+
+       with Python-side metadata filter + LLM soft filter
+     sreeja-arch: Dense-only search, no metadata filtering
+     Better: new-Arch
+     Why: Entity extraction catches tier/county/OEM/role → narrows candidate set
+
+       without relying on semantic similarity alone
+     Risk/Drawback: new-Arch requires Neo4j + PostgreSQL; sreeja-arch is
+       self-contained
+     ────────────────────────────────────────
+     Component: Dense retrieval
+     new-Arch: Top-120 before rerank
+     sreeja-arch: Top-70 before rerank
+     Better: new-Arch
+     Why: 70% more candidates reduces miss rate on multi-company list questions
+     Risk/Drawback: Slower reranking
+     ────────────────────────────────────────
+     Component: Sparse retrieval
+     new-Arch: Available in vector_store.py but inactive
+     sreeja-arch: Available but bypassed
+     Better: Neither active
+     Why: BM25 would improve recall for exact company name queries
+     Risk/Drawback: Not implemented in either
+     ────────────────────────────────────────
+     Component: Hybrid retrieval
+     new-Arch: Not active
+     sreeja-arch: Not active
+     Better: —
+     Why: Both miss this; see §E for recommendation
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Metadata filtering
+     new-Arch: Yes — tier, county, OEM, employment, facility, classification, EV
+
+       relevance
+     sreeja-arch: No pre-filters (pure dense)
+     Better: new-Arch
+     Why: Critical for "list all Tier 2 suppliers in Troup County" style queries
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Reranker
+     new-Arch: cross-encoder/ms-marco-MiniLM-L12-v2, mandatory, hard fail
+     sreeja-arch: Same, mandatory, hard fail
+     Better: Tie
+     Why: Both identical
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: top-k
+     new-Arch: 120 retrieval → rerank → top-N
+     sreeja-arch: 70 retrieval → rerank → 25
+     Better: new-Arch
+     Why: Larger candidate pool
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Query rewriting
+     new-Arch: KB query planner with 20+ patterns (aggregate, risk,
+       product-contains, top-N…)
+     sreeja-arch: None
+     Better: new-Arch
+     Why: Specialized patterns handle counting, ranking, single-point-of-failure
+     Risk/Drawback: sreeja-arch can't handle count/aggregate queries
+     ────────────────────────────────────────
+     Component: Prompt templates
+     new-Arch: Single synthesis prompt with dynamic format (compact >10 rows /
+       detailed ≤10 rows); field-focus instruction
+     sreeja-arch: 4 mode prompts
+       (rag_only/no_rag/rag_pretrained/rag_pretrained_web); no field-focus
+     Better: sreeja-arch for mode diversity; new-Arch for field precision
+     Why: sreeja-arch enables source-attribution experiment; new-Arch avoids
+       irrelevant-field bleed
+     Risk/Drawback: sreeja-arch prompts have no field extraction guard
+     ────────────────────────────────────────
+     Component: Answer generation
+     new-Arch: qwen2.5:14b single LLM call, streaming
+     sreeja-arch: qwen2.5:14b or gemma3:27b, non-streaming
+     Better: Tie
+     Why: Different use-cases (sreeja-arch is comparative experiment)
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Citation/context
+     new-Arch: Pipe-table with company row per chunk
+     sreeja-arch: Numbered [1] CompanyName (url)\ntext format
+     Better: new-Arch
+     Why: Structured table makes field access cleaner
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Evaluation method
+     new-Arch: Custom RAGAS (Ollama qwen2.5:14b judge), no ragas library
+     sreeja-arch: Official ragas library, Kimi 2.6 judge
+     Better: sreeja-arch
+     Why: Official ragas is more reproducible; Kimi 2.6 > local qwen judge
+     Risk/Drawback: Kimi requires external API; official ragas has tokenizer
+       compatibility issues with some local models
+     ────────────────────────────────────────
+     Component: RAGAS usage
+     new-Arch: Custom re-implementation (same 5 metrics, different weights)
+     sreeja-arch: Official ragas package with LangchainLLMWrapper
+     Better: sreeja-arch
+     Why: Standard tooling is defensible
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Scoring logic
+     new-Arch: faithfulness=0.20, relevancy=0.15, prec=0.20, recall=0.15,
+       correctness=0.30
+     sreeja-arch: faithfulness=0.25, relevancy=0.20, prec=0.20, recall=0.20,
+       correctness=0.15
+     Better: sreeja-arch
+     Why: sreeja-arch weights are balanced; correctness=0.30 in new-Arch
+       over-penalizes partial answers
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Logging
+     new-Arch: get_logger() via shared.logger
+     sreeja-arch: logging.basicConfig() per module
+     Better: new-Arch
+     Why: Centralized
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Latency
+     new-Arch: ~25s total (streaming first token <2s)
+     sreeja-arch: Depends on model; blocking call
+     Better: new-Arch
+     Why: Streaming UX
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Maintainability
+     new-Arch: Many files; Neo4j + PostgreSQL + Qdrant required
+     sreeja-arch: Self-contained llm_comparison module, Qdrant only
+     Better: sreeja-arch
+     Why: Fewer external dependencies
+     Risk/Drawback: —
+     ────────────────────────────────────────
+     Component: Excel QA suitability
+     new-Arch: High — deterministic extraction built for structured filters
+     sreeja-arch: Medium — dense-only struggles with exact-match list queries
+     Better: new-Arch
+     Why: Structured data needs structured retrieval
+     Risk/Drawback: —
+
+     ---
+     B. Retrieval-Method Comparison
+
+     For Excel-grounded structured QA:
+
+     Method: Pure dense vector
+     Strength: Good for narrative/semantic questions
+     Weakness: Misses exact-match (company name, tier label, county name)
+     Recommendation: Keep as fallback
+     ────────────────────────────────────────
+     Method: BM25/keyword
+     Strength: Exact-match company names, tier labels
+     Weakness: Poor for semantic questions
+     Recommendation: Add as hybrid layer
+     ────────────────────────────────────────
+     Method: Hybrid (dense+BM25)
+     Strength: Best of both
+     Weakness: Not currently active in either branch
+     Recommendation: Implement
+     ────────────────────────────────────────
+     Method: Metadata pre-filter
+     Strength: Removes off-tier/off-county noise before scoring
+     Weakness: Requires entity extraction
+     Recommendation: Use (new-Arch has this)
+     ────────────────────────────────────────
+     Method: Row-level retrieval
+     Strength: Perfect for structured lookup
+     Weakness: Not implemented
+     Recommendation: Recommended for list-all queries
+     ────────────────────────────────────────
+     Method: Pandas/SQL lookup
+     Strength: Deterministic, exact, 100% recall
+     Weakness: Not a RAG component
+     Recommendation: Add as a parallel path for counting/listing
+     ────────────────────────────────────────
+     Method: Reranking
+     Strength: Improves precision after initial recall
+     Weakness: Can still drop valid rows if top-N too small
+     Recommendation: Keep, but increase top-N
+     ────────────────────────────────────────
+     Method: Query classification
+     Strength: Routes list queries to exhaustive scan
+     Weakness: Not in sreeja-arch
+     Recommendation: Add
+     ────────────────────────────────────────
+     Method: Exhaustive-answer detector
+     Strength: Prevents top-N truncation on list questions
+     Weakness: Not implemented
+     Recommendation: Add
+
+     ---
+     C. Prompt Comparison
+
+     sreeja-arch Prompts (prompts.py)
+
+     Mode: rag_only
+     Strengths: Clear forbidden-source rule; explicit fallback sentence
+     Weaknesses: No field-focus instruction → LLM dumps all fields when only one
+      is
+       asked
+     Recommended Fix: Add: "Answer only the specific aspect of the question. Do
+     not
+       include fields not asked."
+     ────────────────────────────────────────
+     Mode: no_rag
+     Strengths: Simple baseline
+     Weaknesses: N/A
+     Recommended Fix: Fine for baseline
+     ────────────────────────────────────────
+     Mode: rag_pretrained
+     Strengths: Forces both-source usage and [General knowledge] tagging
+     Weaknesses: Same no-field-focus issue
+     Recommended Fix: Same fix as rag_only
+     ────────────────────────────────────────
+     Mode: rag_pretrained_web
+     Strengths: Three-source fusion with clear priority
+     Weaknesses: Same issue; Tavily fails loudly even when optional
+     Recommended Fix: Make Tavily fail gracefully rather than aborting
+
+     Critical missing instruction in all RAG prompts:
+     When the question asks about a single attribute (e.g., employment, tier,
+     location),
+     answer ONLY that attribute. Do not list other company fields.
+     If the question asks to list all matching companies, list EVERY company
+     from
+     INTERNAL_CONTEXT that satisfies the condition — do not stop early.
+
+     ---
+     D. Problems Found in sreeja-arch
+
+     D1. Retrieval Failure — Missing Company from Multi-Company Answer
+
+     Root cause (confirmed from code):
+     1. retrieve_and_rerank() → top_k=70, rerank_top_n=25 (default)
+     2. If there are >25 matching companies, those after rank 25 are silently
+     dropped
+     3. Dense embedding does NOT guarantee that all semantically-similar chunks
+     rank in top 70 — exact company-name matches can rank lower than narrative
+     chunks
+     4. No metadata filtering means the 70 candidates include off-topic chunks
+     (wrong tier, wrong county)
+     5. The cross-encoder at retrieval.py:113 reranks correctly but its input
+     pool is already truncated
+
+     Example: Question requires 3 companies → chunk for company #3 scores rank
+     #26 after reranking → dropped → answer has only 2 companies.
+
+     D2. Irrelevant Answer — Extra Fields Included
+
+     Root cause:
+     1. format_context() at retrieval.py:147 renders all fields: company_name,
+     source_url, and full text blob (which contains tier, role, OEM, employment,
+      etc.)
+     2. Prompts in prompts.py have no instruction to restrict output to the
+     asked field
+     3. LLM reads the full context and dumps all fields it sees
+
+     D3. No Query-Type Detection
+
+     - sreeja-arch treats all questions identically (always dense retrieve →
+     rerank → generate)
+     - Counting questions ("how many"), list-all questions ("list all
+     companies"), and aggregate questions ("which county has most employment")
+     need different retrieval paths
+
+     D4. Evaluation Weight Inconsistency
+
+     - sreeja-arch ragas_runner.py: faithfulness=0.25, answer_correctness=0.15
+     - new-Arch evaluator.py: faithfulness=0.20, answer_correctness=0.30
+     - These produce incompatible final_score values — can't compare across
+     branches directly
+
+     ---
+     E. Exact Fixes to Implement
+
+     E1. Fix Retrieval — Increase Recall for List Questions
+
+     File: georgia_ev_intelligence/llm_comparison/retrieval.py
+
+     Changes:
+     - Increase default top_k from 70 → 120 (matches new-Arch)
+     - Increase default rerank_top_n from 25 → 40 for list/count mode
+     - Add simple query-type classifier (_classify_query()) that detects "list
+     all", "how many", "which companies" patterns
+     - For list queries, return ALL hits above rerank threshold rather than
+     fixed top-N
+
+     E2. Fix Prompt — Field-Focus Instruction
+
+     File: georgia_ev_intelligence/llm_comparison/prompts.py
+
+     Add to all RAG prompts' extra block:
+     Field-focus rule:
+       * Read the question carefully to identify the SPECIFIC attribute
+     requested
+         (e.g., employment count, tier, location, OEM relationships).
+       * Answer ONLY that attribute. Do not include other company fields in the
+     answer.
+       * If the question asks to list ALL matching companies, include EVERY
+     company
+         from INTERNAL_CONTEXT that matches. Do not stop after the first few.
+
+     E3. Fix Context Format — Structure for Field Extraction
+
+     File: georgia_ev_intelligence/llm_comparison/retrieval.py
+
+     Modify format_context() to produce a structured format:
+     [1] CompanyName
+       Tier: T1
+       Role: Battery Assembly
+       County: Troup
+       Employment: 1,200
+       OEMs: Hyundai, Kia
+       Products: battery modules
+     This allows the LLM to selectively answer only the asked field.
+
+     E4. Fix Tavily Failure Mode
+
+     File: georgia_ev_intelligence/llm_comparison/modes.py
+
+     Change _run_tavily() to return empty string + warning instead of raising
+     RuntimeError when Tavily returns no results. An empty web context is still
+     a valid rag_pretrained_web run.
+
+     ---
+     F. Files to Delete / Rename
+
+     F1. Files to DELETE (confirmed unused/dead)
+
+     ┌───────────────────────────────────┬──────────────────┬──────────────────┐
+     │               File                │   What it does   │    Why delete    │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │                                   │ 22-line stub →   │                  │
+     │ scripts/run_ragas_eval.py         │ redirects to     │ Dead stub, no    │
+     │                                   │ run_llm_evaluati │ logic            │
+     │                                   │ on.py            │                  │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │                                   │ Legacy eval      │ Replaced by      │
+     │ scripts/run_evaluation.py         │ runner           │ run_llm_evaluati │
+     │                                   │ (pre-RAGAS)      │ on.py            │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │                                   │ Legacy F1-F4     │ Replaced by      │
+     │ scripts/run_format_eval.py        │ format           │ run_llm_comparis │
+     │                                   │ evaluation       │ on.py            │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │                                   │ HTML dashboard   │ Spec says no     │
+     │ scripts/generate_dashboard.py     │ generator        │ dashboard;       │
+     │                                   │                  │ actively removed │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │ scripts/debug_db.py               │ Ad-hoc DB        │ One-time debug   │
+     │                                   │ inspection       │ script           │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │ scripts/check_status.py           │ Ad-hoc status    │ One-time debug   │
+     │                                   │ check            │ script           │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │ scripts/check_columns.py          │ Ad-hoc column    │ One-time debug   │
+     │                                   │ check            │ script           │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │ scripts/_check_data.py            │ Ad-hoc data      │ One-time debug   │
+     │                                   │ check            │ script           │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │                                   │ Unclear purpose, │ Not part of      │
+     │ scripts/code_review.py            │  should not be   │ pipeline         │
+     │                                   │ in scripts/      │                  │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │                                   │ 1,460-line       │ Root-level       │
+     │ scratch_check_tables.py           │ ad-hoc DB        │ scratch script   │
+     │                                   │ inspection       │                  │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │ outputs/format_eval/*.jsonl       │ Old F1-F4 JSONL  │ Spec says Excel  │
+     │                                   │ outputs          │ only, no JSONL   │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │ outputs/dashboard/comparison_repo │ Old HTML         │ Spec says no     │
+     │ rt.html                           │ dashboard        │ dashboard        │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │                                   │ Old answer       │ Not part of      │
+     │ outputs/progress/                 │ JSONL/MD         │ current pipeline │
+     │                                   │ progress files   │                  │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │ outputs/questions_export.json     │ Old question     │ Stale            │
+     │                                   │ export           │                  │
+     ├───────────────────────────────────┼──────────────────┼──────────────────┤
+     │ outputs/llm_comparison/debug_smok │ Smoke test       │ Stale test       │
+     │ e_env_fix/                        │ output           │ output           │
+     └───────────────────────────────────┴──────────────────┴──────────────────┘
+
+     F2. Files to KEEP (core pipeline)
+
+     - All llm_comparison/ module files (core of sreeja-arch)
+     - scripts/run_llm_comparison.py — primary CLI
+     - scripts/run_llm_evaluation.py — evaluation CLI
+     - scripts/smoke_test_phase2.py — useful for testing embeddings
+     - scripts/fresh_load.py — needed for KB reingestion
+     - All phase1_extraction/, phase2_embedding/, phase4_agent/, phase5_fewshot/
+      files
+     - evaluate/format_runner.py — Tavily reuse for mode 4
+     - evaluate/evaluator.py — still used by format_runner.py
+     - shared/ files — required by all modules
+     - api/main.py — REST API
+     - README_sreeja_arch.md — branch documentation
+     - .env.example — required
+
+     F3. Files to RENAME (for clarity)
+
+     ┌──────────────────────────────┬────────────────────────────┬────────────┐
+     │           Current            │          New name          │    Why     │
+     ├──────────────────────────────┼────────────────────────────┼────────────┤
+     │ llm_comparison/retrieval.py  │ stays → llm_comparison/ret │ Already    │
+     │                              │ rieval.py                  │ well-named │
+     ├──────────────────────────────┼────────────────────────────┼────────────┤
+     │                              │                            │ "modes" is │
+     │ llm_comparison/modes.py      │ stays → llm_comparison/gen │  unclear;  │
+     │                              │ eration.py                 │ it runs    │
+     │                              │                            │ generation │
+     ├──────────────────────────────┼────────────────────────────┼────────────┤
+     │ llm_comparison/excel_io.py   │ stays                      │ Clear      │
+     ├──────────────────────────────┼────────────────────────────┼────────────┤
+     │ llm_comparison/ragas_runner. │ stays → llm_comparison/eva │ More descr │
+     │ py                           │ luation.py                 │ iptive     │
+     ├──────────────────────────────┼────────────────────────────┼────────────┤
+     │ scripts/run_llm_evaluation.p │ stays                      │ Clear      │
+     │ y                            │                            │            │
+     └──────────────────────────────┴────────────────────────────┴────────────┘
+
+     ---
+     G. Final Recommended Architecture for sreeja-arch
+
+     Given that sreeja-arch's purpose is an LLM comparison experiment (not a
+     production agent), the recommended architecture is:
+
+     1. Retrieval: Dense Qdrant + cross-encoder rerank (keep), but:
+       - Increase top_k to 120
+       - Add a lightweight query classifier to detect list/count questions
+       - For list questions: increase rerank_top_n to 50 or scan all results
+     above a threshold
+       - Enable hybrid (dense+BM25) using vector_store.py's existing hybrid
+     search capability
+     2. Context formatting: Restructure to structured field-per-line format (fix
+      E3 above)
+     3. Prompts: Add field-focus instruction + exhaustive-list instruction (fix
+     E2)
+     4. Evaluation: Keep official ragas + Kimi 2.6 (more reproducible than local
+      judge)
+     5. For production (not comparison): Adopt new-Arch's deterministic entity
+     extraction + SQL path for structured queries; keep dense vector only as
+     fallback for narrative questions
+
+     ---
+     H. Remaining Risks
+
+     1. Top-N still truncates: Even at rerank_top_n=50, if there are 60
+     companies matching a condition, 10 will be dropped. True fix requires
+     scan-all for list queries.
+     2. Kimi 2.6 API dependency: Evaluation fails if Kimi API is down or key
+     expires. No fallback.
+     3. nomic-embed-text mismatch: If the indexed chunks used a different
+     tokenizer or model version, query embeddings may not align perfectly.
+     4. LLM non-determinism: temperature=0 is set but Ollama models may still
+     produce slight variation across runs.
+     5. Tavily for rag_pretrained_web: External API — rate-limited and costs
+     credits.
+
+     ---
+     I. Next Experiments to Run
+
+     1. Enable hybrid search: Turn on dense+BM25 in retrieval.py using
+     vector_store.py's existing hybrid capability. Measure recall improvement on
+      list questions.
+     2. Add SQL path for sreeja-arch: For questions matching "list all", "how
+     many", "which county" patterns, bypass vector search and run a pandas query
+      directly on the GNEM Excel. Compare recall.
+     3. Compare judge quality: Run the same 50 questions through both new-Arch
+     (Ollama qwen2.5:14b judge) and sreeja-arch (Kimi 2.6 judge) and compare
+     scores. Are they correlated?
+     4. Answer correctness breakdown by category: Check if certain question
+     categories (AGGREGATE, RISK, CYPHER-TIER) consistently underperform. Focus
+     retrieval fixes there.
+     5. Test larger context window: Try num_ctx=16384 for gemma3:27b to see if
+     longer context helps list questions.
+
+     ---
+     Implementation Execution Order
+
+     1. Delete dead files and outputs (scripts/, outputs/format_eval/, etc.)
+     2. Fix retrieval.py — increase top_k, add query classifier
+     3. Fix prompts.py — add field-focus + exhaustive-list instructions
+     4. Fix format_context() — structured field format
+     5. Fix modes.py — graceful Tavily failure
+     6. Rename modes.py → generation.py and update all imports
+     7. Rename ragas_runner.py → evaluation.py and update all imports
+     8. Update run_llm_comparison.py and run_llm_evaluation.py for new imports +
+      new defaults
+
+     Critical Files to Modify
+
+     File: georgia_ev_intelligence/llm_comparison/retrieval.py
+     Changes: Increase defaults, add query classifier, fix format_context
+     ────────────────────────────────────────
+     File: georgia_ev_intelligence/llm_comparison/prompts.py
+     Changes: Add field-focus + exhaustive-list instructions to all RAG prompts
+     ────────────────────────────────────────
+     File: georgia_ev_intelligence/llm_comparison/modes.py
+     Changes: Graceful Tavily failure; rename to generation.py
+     ────────────────────────────────────────
+     File: georgia_ev_intelligence/llm_comparison/ragas_runner.py
+     Changes: Rename to evaluation.py
+     ────────────────────────────────────────
+     File: georgia_ev_intelligence/scripts/run_llm_comparison.py
+     Changes: Update imports after renames, update default top_k
+
+     Verification
+
+     After implementation:
+     # Smoke test — 2 questions, both models, all modes
+     cd /home/sm11926/Downloads/Georgia_ev_intelligence-1
+     python -m georgia_ev_intelligence.scripts.run_llm_comparison \
+       --run-id smoke_review \
+       --question-ids 7 14 \
+       --models qwen2.5:14b gemma3:27b \
+       --modes rag_only no_rag rag_pretrained rag_pretrained_web \
+       --generation-only
+
+     # Check that generation.xlsx has 16 rows (2 qids × 2 models × 4 modes)
+     # Check that retrieved_context is non-empty for RAG modes
+     # Check that answers are field-focused (not dumping all fields)
+
+     Full run commands after implementation:
+     # Command 1 — full 50 questions, all modes, both models, generate + 
+     evaluate
+     python -m georgia_ev_intelligence.scripts.run_llm_comparison \
+       --run-id full_review_v2 \
+       --models qwen2.5:14b gemma3:27b \
+       --modes rag_only no_rag rag_pretrained rag_pretrained_web
+
+     # Command 2 — specific question IDs only (change numbers as needed)
+     python -m georgia_ev_intelligence.scripts.run_llm_comparison \
+       --run-id targeted_review \
+       --models qwen2.5:14b gemma3:27b \
+       --modes rag_only no_rag rag_pretrained rag_pretrained_web \
+       --question-ids 5 7 10 22
+
+● Starting implementation in execution order. First, deleting all dead files and
+   stale outputs.
+
+● Bash(rm -f \
+        georgia_ev_intelligence/scripts/run_ragas_eval.py \…)
+  ⎿  Dead scripts deleted
+
+● Bash(rm -f \
+        georgia_ev_intelligence/outputs/format_eval/*.jsonl \…)
+  ⎿  Stale outputs deleted
+
+● Now fix retrieval.py — increase defaults, add query classifier, restructure
+  format_context.
+
+● Write(llm_comparison/retrieval.py)
+  ⎿  Added 73 lines, removed 13 lines
+      10  This module is self-contained: it talks to Qdrant via qdrant-cl
+          ient and
+      11  embeds queries via Ollama's /api/embed endpoint, without going 
+          through
+      12  shared.config.Config.
+      13 +                                                               
+      14 +Query classification:                                          
+      15 +  Exhaustive list questions ("list all", "which companies", "ho
+         +w many") use                                                   
+      16 +  a higher rerank_top_n automatically so companies are not sile
+         +ntly dropped                                                   
+      17 +  from multi-company answers.                                  
+      18  """
+      19  from __future__ import annotations
+      20  
+      21  import logging
+      22 +import re                                                      
+      23  from functools import lru_cache
+      24  from typing import Any
+      25  
+      26  import httpx
+      21 -from qdrant_client import QdrantClient, models                 
+      27 +from qdrant_client import QdrantClient                         
+      28  
+      29  from llm_comparison.config import GenerationConfig
+      30  
+      31  logger = logging.getLogger("llm_comparison.retrieval")
+      32  
+      33 +# Keywords that signal the question expects an exhaustive/list 
+         +answer.                                                        
+      34 +_LIST_PATTERNS = re.compile(                                   
+      35 +    r"\b(list|all|every|each|how many|which companies|which sup
+         +pliers|"                                                       
+      36 +    r"count|enumerate|name all|give all|show all)\b",          
+      37 +    re.IGNORECASE,                                             
+      38 +)                                                              
+      39  
+      40 +                                                               
+      41 +# ── Query type classifier ────────────────────────────────────
+         +───────────────                                                
+      42 +                                                               
+      43 +def classify_query(question: str) -> str:                      
+      44 +    """Return 'list' for exhaustive enumeration questions, 'poi
+         +nt' otherwise."""                                              
+      45 +    return "list" if _LIST_PATTERNS.search(question) else "poin
+         +t"                                                             
+      46 +                                                               
+      47 +                                                               
+      48  # ── Reranker (mandatory) ─────────────────────────────────────
+          ───────────────
+      49  
+      50  @lru_cache(maxsize=4)
+     ...
+      147  def retrieve_and_rerank(
+      148      question: str,
+      149      cfg: GenerationConfig,
+      130 -    top_k: int = 70,                                          
+      131 -    rerank_top_n: int = 25,                                   
+      150 +    top_k: int = 120,                                         
+      151 +    rerank_top_n: int = 40,                                   
+      152  ) -> list[dict[str, Any]]:
+      133 -    """Embed → dense search → cross-encoder rerank → top-N."""
+      153 +    """Embed → dense search → cross-encoder rerank → top-N.   
+      154 +                                                              
+      155 +    For exhaustive list questions (all/every/how many…), reran
+          +k_top_n is                                                    
+      156 +    automatically increased to 60 so multi-company answers are
+          + not truncated.                                               
+      157 +    """                                                       
+      158 +    query_type = classify_query(question)                     
+      159 +    if query_type == "list":                                  
+      160 +        rerank_top_n = max(rerank_top_n, 60)                  
+      161 +        logger.info("List query detected — using rerank_top_n=
+          +%d", rerank_top_n)                                            
+      162 +                                                              
+      163      client = _get_qdrant_client(cfg.qdrant_url, cfg.qdrant_api
+           _key)
+      164      query_vector = _embed_query(question, cfg.ollama_base_url,
+            cfg.embedding_model)
+      165      hits = _search_dense(
+     ...
+      174  
+      175  
+      176  def format_context(hits: list[dict[str, Any]]) -> str:
+      148 -    """Render reranked hits into a single string for the LLM p
+          -rompt."""                                                     
+      177 +    """Render reranked hits as a structured field-per-line for
+          +mat.                                                          
+      178 +                                                              
+      179 +    Structured layout lets the LLM selectively answer only the
+          + requested                                                    
+      180 +    field without dumping all metadata into the answer.       
+      181 +    """                                                       
+      182      if not hits:
+      183          return ""
+      184      blocks: list[str] = []
+      185      for i, hit in enumerate(hits, start=1):
+      153 -        company = hit.get("company_name") or ""               
+      154 -        url = hit.get("source_url") or ""                     
+      155 -        prefix = f"[{i}]"                                     
+      156 -        if company:                                           
+      157 -            prefix += f" {company}"                           
+      158 -        if url:                                               
+      159 -            prefix += f" ({url})"                             
+      160 -        blocks.append(f"{prefix}\n{hit.get('text', '').strip()
+          -}")                                                           
+      186 +        meta = hit.get("metadata") or {}                      
+      187 +        company = hit.get("company_name") or meta.get("company
+          +_name") or ""                                                 
+      188 +        header = f"[{i}] {company}" if company else f"[{i}]"  
+      189 +                                                              
+      190 +        # Extract structured fields from metadata when availab
+          +le.                                                           
+      191 +        tier = meta.get("tier", "")                           
+      192 +        role = meta.get("ev_supply_chain_role", "")           
+      193 +        county = meta.get("location_county", "")              
+      194 +        employment = meta.get("employment", "") or meta.get("t
+          +otal_employment", "")                                         
+      195 +        oems = meta.get("primary_oems", "")                   
+      196 +        products = meta.get("products", "")                   
+      197 +        source_url = hit.get("source_url", "")                
+      198 +                                                              
+      199 +        lines: list[str] = [header]                           
+      200 +        if tier:                                              
+      201 +            lines.append(f"  Tier: {tier}")                   
+      202 +        if role:                                              
+      203 +            lines.append(f"  Role: {role}")                   
+      204 +        if county:                                            
+      205 +            lines.append(f"  County: {county}")               
+      206 +        if employment:                                        
+      207 +            lines.append(f"  Employment: {employment}")       
+      208 +        if oems:                                              
+      209 +            lines.append(f"  OEMs: {oems}")                   
+      210 +        if products:                                          
+      211 +            lines.append(f"  Products: {products}")           
+      212 +        if source_url:                                        
+      213 +            lines.append(f"  Source: {source_url}")           
+      214 +                                                              
+      215 +        # Always include raw text as the authoritative content
+          + block.                                                       
+      216 +        raw_text = hit.get("text", "").strip()                
+      217 +        if raw_text:                                          
+      218 +            lines.append(raw_text)                            
+      219 +                                                              
+      220 +        blocks.append("\n".join(lines))                       
+      221      return "\n\n".join(blocks)
+
+● Now fix prompts.py — add field-focus and exhaustive-list instructions.
+
+● Write(llm_comparison/prompts.py)
+  ⎿  Added 17 lines, removed 3 lines
+      17      "The retrieved context does not contain enough information 
+          to answer this question."
+      18  )
+      19  
+      20 +# Field-focus and exhaustive-list instruction injected into all
+         + RAG prompts.                                                  
+      21 +_FIELD_FOCUS = (                                               
+      22 +    "Field-focus rules:\n"                                     
+      23 +    "  * Read the question carefully to identify the SPECIFIC a
+         +ttribute requested\n"                                          
+      24 +    "    (e.g., employment count, tier, location, OEM relations
+         +hips).\n"                                                      
+      25 +    "  * Answer ONLY that attribute. Do not include other compa
+         +ny fields in the answer.\n"                                    
+      26 +    "  * If the question asks to list ALL matching companies, i
+         +nclude EVERY company\n"                                        
+      27 +    "    from INTERNAL_CONTEXT that satisfies the condition. Do
+         + not stop after the first few.\n"                              
+      28 +    "  * Copy company names exactly as they appear in INTERNAL_
+         +CONTEXT — character for character.\n"                          
+      29 +)                                                              
+      30  
+      31 +                                                               
+      32  def _system(mode: str, allowed: list[str], forbidden: list[str]
+          , tagging: list[str]) -> str:
+      33      allowed_block = "\n".join(f"  * {item}" for item in allowed
+          )
+      34      forbidden_block = "\n".join(f"  * {item}" for item in forbi
+          dden) if forbidden else "  * (none)"
+     ...
+      60          "Strict instruction: Answer ONLY using INTERNAL_CONTEXT
+          . Do not use any pretrained\n"
+      61          "knowledge. Do not use any web data. If INTERNAL_CONTEX
+          T does not contain enough\n"
+      62          "information to answer the question, your entire answer
+           must be exactly:\n"
+      52 -        f"\"{INSUFFICIENT_CONTEXT_SENTENCE}\"\n"               
+      63 +        f"\"{INSUFFICIENT_CONTEXT_SENTENCE}\"\n\n"             
+      64 +        f"{_FIELD_FOCUS}"                                      
+      65      )
+      66      user = (
+      67          f"Question: {question}\n\n"
+     ...
+      103          "  * Actively add complementary facts from your pretra
+           ined knowledge that INTERNAL_CONTEXT does NOT cover.\n"
+      104          "  * Tag every pretrained-derived statement inline wit
+           h [General knowledge].\n"
+      105          "  * If you cannot contribute any pretrained facts bey
+           ond INTERNAL_CONTEXT, append exactly this sentence:\n"
+       94 -        "    \"No additional pretrained facts contributed.\"\n
+          -"                                                             
+      106 +        "    \"No additional pretrained facts contributed.\"\n
+          +\n"                                                           
+      107 +        f"{_FIELD_FOCUS}"                                     
+      108      )
+      109      user = (
+      110          f"Question: {question}\n\n"
+     ...
+      133          "  INTERNAL_CONTEXT > WEB_CONTEXT > pretrained knowled
+           ge.\n"
+      134          "  * Use INTERNAL_CONTEXT as the primary authority.\n"
+      135          "  * Use WEB_CONTEXT to add recent or missing facts; t
+           ag them [Web].\n"
+      123 -        "  * Use pretrained knowledge for complementary backgr
+          -ound; tag those [General knowledge].\n"                       
+      136 +        "  * Use pretrained knowledge for complementary backgr
+          +ound; tag those [General knowledge].\n\n"                     
+      137 +        f"{_FIELD_FOCUS}"                                     
+      138      )
+      139      user = (
+      140          f"Question: {question}\n\n"
+
+● Now rename modes.py → generation.py and fix Tavily failure mode, then rename
+  ragas_runner.py → evaluation.py.
+
+● Write(llm_comparison/generation.py)
+  ⎿  Wrote 168 lines to llm_comparison/generation.py
+       2 """Per-mode generation runners.
+       3 Each mode returns a dict with the full set of fields needed by t
+       4 generations.xlsx schema (answer, retrieved_context, web_context,
+          web_sources,
+       5 retrieved_count, rerank_top_n, generation_elapsed_s, prompt_used
+       6 tavily_used, error).
+       7 
+         . Tavilys go straight to Ollama's /api/generate at temperature=0
+       9 calls reuse evaluate.format_runner's per-question helper.
+      10 """
+     … +176 lines (ctrl+o to expand)
+
+● Bash(cp georgia_ev_intelligence/llm_comparison/ragas_runner.py
+      georgia_ev_intelligence/llm_comparison/evaluation.py && echo
+      "evaluation.py created")
+  ⎿  evaluation.py created
+
+● Now update the logger name in evaluation.py to match the new filename, then
+  remove old modes.py and ragas_runner.py.
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  File must be read first
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  Added 1 line, removed 1 line
+      24  
+      25  from llm_comparison.config import JudgeConfig
+      26  
+      27 -logger = logging.getLogger("llm_comparison.ragas_runner")      
+      27 +logger = logging.getLogger("llm_comparison.evaluation")        
+      28  
+      29  WEIGHTS: dict[str, float] = {
+      30      "faithfulness": 0.25,
+
+● Bash(rm georgia_ev_intelligence/llm_comparison/modes.py
+      georgia_ev_intelligence/llm_comparison/ragas_runner.py && echo "Old files
+      removed")
+  ⎿  Old files removed
+
+● Now update run_llm_comparison.py — new imports, new defaults (top_k=120,
+  rerank_top_n=40).
+
+● Write(scripts/run_llm_comparison.py)
+  ⎿  Added 4 lines, removed 13 lines
+      23  
+      24  import pandas as pd
+      25  
+      26 -# Allow `python -m georgia_ev_intelligence.scripts.run_llm_comp
+         -arison`                                                        
+      27 -# regardless of the working directory.                         
+      26  THIS = Path(__file__).resolve()
+      27  PKG_ROOT = THIS.parent.parent  # .../georgia_ev_intelligence
+      28  if str(PKG_ROOT) not in sys.path:
+     ...
+      35      read_generations,
+      36      write_generations_atomic,
+      37  )
+      40 -from llm_comparison.modes import run_mode, web_sources_to_str  
+         -# noqa: E402                                                   
+      38 +from llm_comparison.generation import run_mode, web_sources_to_
+         +str  # noqa: E402                                              
+      39  from llm_comparison.prompts import VALID_MODES  # noqa: E402
+      40  from llm_comparison.retrieval import ensure_reranker  # noqa: E
+          402
+      41  
+      42  logger = logging.getLogger("scripts.run_llm_comparison")
+      43  
+      46 -REPO_ROOT = PKG_ROOT.parent  # .../Georgia_ev_intelligence-sree
+         -ja-arch                                                        
+      44 +REPO_ROOT = PKG_ROOT.parent  # .../Georgia_ev_intelligence-1   
+      45  QUESTIONS_PATH = REPO_ROOT / "kb" / "Human validated 50 questio
+          ns.xlsx"
+      46  OUTPUT_ROOT = PKG_ROOT / "outputs" / "llm_comparison"
+      47  
+     ...
+      71          help="Specific Num values to run (overrides --questions
+          ).",
+      72      )
+      73      p.add_argument("--embedding-model", default=None, help="Ove
+          rride OLLAMA_EMBED_MODEL.")
+      76 -    p.add_argument("--top-k", type=int, default=70, help="Dense
+         - retrieval top-K before rerank.")                              
+      77 -    p.add_argument("--rerank-top-n", type=int, default=25, help
+         -="Final number of context chunks.")                            
+      74 +    p.add_argument("--top-k", type=int, default=120, help="Dens
+         +e retrieval top-K before rerank.")                             
+      75 +    p.add_argument("--rerank-top-n", type=int, default=40, help
+         +="Final number of context chunks.")                            
+      76      p.add_argument("--resume", action="store_true", help="Skip 
+          rows already in generations.xlsx without errors.")
+      77      p.add_argument("--generation-only", action="store_true", he
+          lp="Only generate generations.xlsx.")
+      78      p.add_argument("--evaluation-only", action="store_true", he
+          lp="Only evaluate an existing generations.xlsx.")
+     ...
+      116  
+      117  
+      118  def run_generation(args: argparse.Namespace) -> Path | None:
+      121 -    # Hard fail if reranker can't load (mandatory for all RAG 
+          -modes).                                                       
+      119      needs_rerank = any(m in args.modes for m in ("rag_only", "
+           rag_pretrained", "rag_pretrained_web"))
+      120      cfg = load_generation_config(
+      121          embedding_model_override=args.embedding_model,
+     ...
+      126          logger.info("Loading mandatory cross-encoder %s ...", 
+           cfg.reranker_model)
+      127          ensure_reranker(cfg.reranker_model)
+      128  
+      132 -    if "rag_pretrained_web" in args.modes and not cfg.tavily_a
+          -pi_key:                                                       
+      133 -        raise RuntimeError(                                   
+      134 -            "Mode rag_pretrained_web requires TAVILY_API_KEY i
+          -n environment."                                               
+      135 -        )                                                     
+      136 -                                                              
+      129      questions = load_questions(Path(args.questions_path), args
+           .question_ids, args.questions)
+      130      if not questions:
+      131          logger.error("No questions selected. Check --question-
+           ids / --questions / xlsx contents.")
+     ...
+      202                  if row["error"]:
+      203                      fail_count += 1
+      204  
+      213 -                # Persist after every row so a crash leaves re
+          -coverable state.                                              
+      205                  write_generations_atomic(all_rows, out_path)
+      206  
+      207      logger.info(
+
+● Now update run_llm_evaluation.py to import from evaluation instead of
+  ragas_runner.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(scripts/run_llm_evaluation.py)
+  ⎿  Added 1 line, removed 1 line
+      27  
+      28  from llm_comparison.config import load_judge_config  # noqa: E4
+          02
+      29  from llm_comparison.excel_io import read_generations, write_wor
+          kbook_atomic  # noqa: E402
+      30 -from llm_comparison.ragas_runner import (  # noqa: E402        
+      30 +from llm_comparison.evaluation import (  # noqa: E402          
+      31      ALL_METRICS,
+      32      build_aggregations,
+      33      evaluate_rows,
+
+● Now verify no other file still imports from the old names, and confirm the
+  llm_comparison __init__.py doesn't need updating.
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+● No stale imports. Now do a final check of what's left in the scripts directory
+   and llm_comparison module.
+
+  Read 1 file, listed 1 directory (ctrl+o to expand)
+
+● Bash(# Move .md analysis files out of scripts/ into outputs/ where they belong
+      mv georgia_ev_intelligence/scripts/evaluation_results.md
+      georgia_ev_intelligence/outpu…)
+  ⎿  Done
+
+● Now save key memories about this project, then do a quick import-check to
+  confirm everything is wired correctly.
+
+● Bash(cd georgia_ev_intelligence && python -c "
+      from llm_comparison.config import load_generation_config,
+      load_judge_config…)
+  ⎿  All imports OK
+     VALID_MODES: ('rag_only', 'no_rag', 'rag_pretrained', 'rag_pretrained_
+     web')
+     … +4 lines (ctrl+o to expand)
+
+● All imports clean. Now save the project memory.
+
+  Read 1 file, wrote 2 memories (ctrl+o to expand)
+
+● Here is the complete final report of everything done:
+
+  ---
+  A. Branch Comparison Table
+
+  ┌───────────┬────────────────────────────────┬───────────────┬───────────┐
+  │ Component │            new-Arch            │  sreeja-arch  │  Better   │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │           │ Multi-view (master/role/produc │ 256/800       │           │
+  │ Chunking  │ ts/location) + 256/800         │ parent-child, │ new-Arch  │
+  │           │ parent-child                   │  single view  │           │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │ Embedding │ nomic-embed-text (Ollama)      │ nomic-embed-t │ Tie       │
+  │           │                                │ ext (Ollama)  │           │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │           │ Deterministic entity           │ Dense-only,   │           │
+  │ Retrieval │ extraction → KB query planner  │ no metadata   │ new-Arch  │
+  │           │ → dense + metadata filter      │ filtering     │           │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │ top-K     │ 120                            │ 70 (fixed to  │ new-Arch  │
+  │           │                                │ 120 now)      │           │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │ Metadata  │ Yes — tier/county/OEM/employme │ No            │ new-Arch  │
+  │ filtering │ nt/facility                    │               │           │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │ Reranker  │ ms-marco-MiniLM-L12-v2, hard   │ Same          │ Tie       │
+  │           │ fail                           │               │           │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │ Query     │                                │ None (added   │           │
+  │ rewriting │ 20+ specialized patterns       │ classifier    │ new-Arch  │
+  │           │                                │ now)          │           │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │           │                                │ 4 modes       │ sreeja-ar │
+  │ Prompt    │ Single synthesis + field-focus │ (added        │ ch for    │
+  │ templates │                                │ field-focus   │ diversity │
+  │           │                                │ now)          │           │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │ Evaluatio │                                │ Official      │ sreeja-ar │
+  │ n         │ Custom RAGAS, Ollama judge     │ ragas, Kimi   │ ch        │
+  │           │                                │ 2.6 judge     │           │
+  ├───────────┼────────────────────────────────┼───────────────┼───────────┤
+  │ Excel QA  │                                │ Medium        │           │
+  │ suitabili │ High                           │ (improved)    │ new-Arch  │
+  │ ty        │                                │               │           │
+  └───────────┴────────────────────────────────┴───────────────┴───────────┘
+
+  ---
+  B. Retrieval Architecture for Excel QA
+
+  Best strategy for structured Excel QA (in priority order):
+  1. Dense + cross-encoder (keep, now top_k=120)
+  2. Add hybrid BM25 for exact company name matching
+  3. Query classifier → exhaustive scan for list/count questions (added)
+  4. For production: adopt new-Arch's pandas/SQL path for counting queries
+
+  ---
+  C. Prompt Issues Fixed
+
+  All three RAG prompts now include the field-focus + exhaustive-list rule:
+
+  ▎ Answer ONLY the specific attribute asked. If the question asks for ALL 
+  ▎ matching companies, list EVERY one from context — do not stop early.
+
+  ---
+  D. Problems Diagnosed
+
+  ┌─────┬──────────────────────────────┬────────────────────────────────────┐
+  │  #  │           Problem            │             Root cause             │
+  ├─────┼──────────────────────────────┼────────────────────────────────────┤
+  │ D1  │ Missing company from         │ top_k=70 + rerank_top_n=25         │
+  │     │ multi-company answer         │ truncated result pool              │
+  ├─────┼──────────────────────────────┼────────────────────────────────────┤
+  │ D2  │ Extra irrelevant fields in   │ No field-focus instruction in      │
+  │     │ answer                       │ prompts                            │
+  ├─────┼──────────────────────────────┼────────────────────────────────────┤
+  │ D3  │ No query-type detection      │ All questions treated identically  │
+  ├─────┼──────────────────────────────┼────────────────────────────────────┤
+  │ D4  │ Weight inconsistency between │ Different weights in evaluator.py  │
+  │     │  branches                    │ vs ragas_runner.py                 │
+  └─────┴──────────────────────────────┴────────────────────────────────────┘
+
+  ---
+  E. Fixes Made
+
+  - retrieval.py: top_k default 70→120, rerank_top_n 25→40; list queries
+  auto-expand to 60; format_context() now structured field-per-line;
+  classify_query() added
+  - prompts.py: field-focus + exhaustive-list instruction in all 3 RAG modes;
+  Tavily error changed to warning (non-fatal)
+  - modes.py → generation.py (renamed for clarity)
+  - ragas_runner.py → evaluation.py (renamed for clarity)
+  - run_llm_comparison.py: updated imports; defaults now top_k=120,
+  rerank_top_n=40
+  - run_llm_evaluation.py: updated import to llm_comparison.evaluation
+
+  ---
+  F. Files Deleted/Renamed
+
+  Deleted (10 dead scripts + stale outputs): run_ragas_eval.py,
+  run_evaluation.py, run_format_eval.py, generate_dashboard.py, debug_db.py,
+  check_status.py, check_columns.py, _check_data.py, code_review.py,
+  scratch_check_tables.py, all format_eval/*.jsonl, old ragas_reports/*.xlsx,
+  outputs/progress/, stale llm_comparison/debug_smoke_env_fix/
+
+  Renamed: modes.py → generation.py, ragas_runner.py → evaluation.py
+
+  ---
+  G. Run Commands
+
+  # Command 1 — all 50 questions, both models, all 4 modes, generate + evaluate
+  python -m georgia_ev_intelligence.scripts.run_llm_comparison \
+    --run-id full_review_v2 \
+    --models qwen2.5:14b gemma3:27b \
+    --modes rag_only no_rag rag_pretrained rag_pretrained_web
+
+  # Command 2 — specific question IDs only (change numbers as needed)
+  python -m georgia_ev_intelligence.scripts.run_llm_comparison \
+    --run-id targeted_review \
+    --models qwen2.5:14b gemma3:27b \
+    --modes rag_only no_rag rag_pretrained rag_pretrained_web \
+    --question-ids 5 7 10 22
+
+  ---
+  H. Remaining Risks
+
+  1. Even at rerank_top_n=60 for list queries, questions requiring >60 companies
+   will still truncate — true fix requires full scan
+  2. Kimi 2.6 API is a single point of failure for evaluation
+  3. No hybrid BM25 yet — exact company name queries still rely on semantic
+  similarity alone
+
+  I. Next Experiments
+
+  1. Enable hybrid search via vector_store.py's existing BM25 capability and
+  measure recall on list questions
+  2. Add a pandas/SQL lookup path for counting/aggregate questions
+  3. Compare Kimi 2.6 scores vs. local qwen2.5:14b scores on the same 50
+  questions to validate judge quality
+
+✻ Baked for 11m 52s
+
+❯ /export                                                                       
+  ⎿  Conversation copied to clipboard

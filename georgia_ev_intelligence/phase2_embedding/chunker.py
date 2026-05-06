@@ -205,7 +205,19 @@ def chunk_company_record(
         "document_id": None,
     }
 
+    identity = "|".join(
+        str(company.get(key, "") or "").strip().lower()
+        for key in (
+            "company_name",
+            "tier",
+            "location_city",
+            "location_county",
+            "products_services",
+        )
+    )
+
     chunk = Chunk(
+        chunk_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"georgia-ev-company:{identity}")),
         chunk_type="company",
         parent_id=None,
         text=text,

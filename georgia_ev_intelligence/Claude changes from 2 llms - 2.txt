@@ -1,0 +1,74 @@
+╭─── Claude Code v2.1.129 ─────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│                 Welcome back Surya!                │ started                 │
+│                                                    │ Run /init to create a … │
+│                       ▐▛███▜▌                      │ ─────────────────────── │
+│                      ▝▜█████▛▘                     │ What's new              │
+│                        ▘▘ ▝▝                       │ Fixed VS Code extensio… │
+│ Sonnet 4.6 · Claude Pro · suryatejap24@gmail.com's │ Fixed Mantle endpoint … │
+│  Organization                                      │ Added `--plugin-url <u… │
+│            ~/…/georgia_ev_intelligence             │ /release-notes for more │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+✻ Conversation compacted (ctrl+o for history)
+
+  ⎿  Read phase2_embedding/vector_store.py (477 lines)
+  ⎿  Referenced file llm_comparison/retrieval.py
+  ⎿  Referenced file llm_comparison/evaluation.py
+  ⎿  Read llm_comparison/prompts.py (182 lines)
+  ⎿  Read llm_comparison/generation.py (187 lines)
+  ⎿  Plan file referenced (~/.claude/plans/you-are-reviewing-my-swift-feigenbaum.md)
+
+  Read 1 file (ctrl+o to expand)
+
+● Now I'll fix _count_exact_match() and then check the stale scripts in
+  parallel.
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  Added 15 lines, removed 4 lines
+      100  
+      101  
+      102  def _count_exact_match(golden: str, answer: str) -> int:
+      103 -    """Return 1 if a standalone integer from golden appears in
+          - answer, else 0."""                                           
+      103 +    """Return 1 if the expected count from golden appears (nor
+          +malized) in answer.                                           
+      104 +                                                              
+      105 +    Matches comma-formatted numbers ("2,435") as a single unit
+          +. Normalization                                               
+      106 +    strips commas before comparing so "2,435" == "2435". Skips
+          + numbers ≤ 2 to                                               
+      107 +    avoid matching ordinals, years that are not counts, etc.  
+      108 +    """                                                       
+      109      if not golden or not answer:
+      110          return 0
+      106 -    nums = re.findall(r"\b(\d+)\b", golden)                   
+      111 +    # Match comma-formatted numbers like "2,435" as one token,
+          + not "2" and "435".                                           
+      112 +    raw_nums = re.findall(r"\b(\d[\d,]*\d|\d)\b", golden)     
+      113 +    if not raw_nums:                                          
+      114 +        return 0                                              
+      115 +    # Normalize: strip commas, drop trivially small numbers th
+          +at are likely noise.                                          
+      116 +    nums = [n.replace(",", "") for n in raw_nums if int(n.repl
+          +ace(",", "")) > 2]                                            
+      117      if not nums:
+      118          return 0
+      109 -    answer_lower = answer.lower()                             
+      119 +    # Build normalized answer: collapse all comma-formatted nu
+          +mbers in answer too.                                          
+      120 +    answer_normalized = re.sub(r"\b(\d[\d,]*\d|\d)\b", lambda 
+          +m: m.group().replace(",", ""), answer.lower())                
+      121      for n in nums:
+      111 -        if re.search(rf"\b{re.escape(n)}\b", answer_lower):   
+      122 +        if re.search(rf"\b{re.escape(n)}\b", answer_normalized
+          +):                                                            
+      123              return 1
+      124      return 0
+      125  
+
+  Listed 1 directory (ctrl+o to expand)
+  ⎿  You've hit your limit · resets 2:10pm (America/New_York)
+     /upgrade to increase your usage limit.
+
+✻ Crunched for 10m 43s

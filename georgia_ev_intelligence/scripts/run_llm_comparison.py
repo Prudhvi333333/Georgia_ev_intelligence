@@ -23,8 +23,6 @@ from pathlib import Path
 
 import pandas as pd
 
-# Allow `python -m georgia_ev_intelligence.scripts.run_llm_comparison`
-# regardless of the working directory.
 THIS = Path(__file__).resolve()
 PKG_ROOT = THIS.parent.parent  # .../georgia_ev_intelligence
 if str(PKG_ROOT) not in sys.path:
@@ -37,13 +35,13 @@ from llm_comparison.excel_io import (  # noqa: E402
     read_generations,
     write_generations_atomic,
 )
-from llm_comparison.modes import run_mode, web_sources_to_str  # noqa: E402
+from llm_comparison.generation import run_mode, web_sources_to_str  # noqa: E402
 from llm_comparison.prompts import VALID_MODES  # noqa: E402
 from llm_comparison.retrieval import ensure_reranker  # noqa: E402
 
 logger = logging.getLogger("scripts.run_llm_comparison")
 
-REPO_ROOT = PKG_ROOT.parent  # .../Georgia_ev_intelligence-sreeja-arch
+REPO_ROOT = PKG_ROOT.parent  # .../Georgia_ev_intelligence-1
 QUESTIONS_PATH = REPO_ROOT / "kb" / "Human validated 50 questions.xlsx"
 OUTPUT_ROOT = PKG_ROOT / "outputs" / "llm_comparison"
 
@@ -73,8 +71,8 @@ def parse_args() -> argparse.Namespace:
         help="Specific Num values to run (overrides --questions).",
     )
     p.add_argument("--embedding-model", default=None, help="Override OLLAMA_EMBED_MODEL.")
-    p.add_argument("--top-k", type=int, default=8, help="Dense retrieval top-K before rerank.")
-    p.add_argument("--rerank-top-n", type=int, default=4, help="Final number of context chunks.")
+    p.add_argument("--top-k", type=int, default=120, help="Dense retrieval top-K before rerank.")
+    p.add_argument("--rerank-top-n", type=int, default=40, help="Final number of context chunks.")
     p.add_argument("--resume", action="store_true", help="Skip rows already in generations.xlsx without errors.")
     p.add_argument("--generation-only", action="store_true", help="Only generate generations.xlsx.")
     p.add_argument("--evaluation-only", action="store_true", help="Only evaluate an existing generations.xlsx.")
@@ -118,7 +116,6 @@ def load_questions(path: Path, ids: list[int] | None, cap: int) -> list[dict]:
 
 
 def run_generation(args: argparse.Namespace) -> Path | None:
-    # Hard fail if reranker can't load (mandatory for all RAG modes).
     needs_rerank = any(m in args.modes for m in ("rag_only", "rag_pretrained", "rag_pretrained_web"))
     cfg = load_generation_config(
         embedding_model_override=args.embedding_model,
@@ -128,11 +125,6 @@ def run_generation(args: argparse.Namespace) -> Path | None:
     if needs_rerank:
         logger.info("Loading mandatory cross-encoder %s ...", cfg.reranker_model)
         ensure_reranker(cfg.reranker_model)
-
-    if "rag_pretrained_web" in args.modes and not cfg.tavily_api_key:
-        raise RuntimeError(
-            "Mode rag_pretrained_web requires TAVILY_API_KEY in environment."
-        )
 
     questions = load_questions(Path(args.questions_path), args.question_ids, args.questions)
     if not questions:
@@ -210,7 +202,6 @@ def run_generation(args: argparse.Namespace) -> Path | None:
                 if row["error"]:
                     fail_count += 1
 
-                # Persist after every row so a crash leaves recoverable state.
                 write_generations_atomic(all_rows, out_path)
 
     logger.info(

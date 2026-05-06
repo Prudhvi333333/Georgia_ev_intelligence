@@ -74,7 +74,7 @@ print(f"  RESULTS: {passed}/{len(TEST_QUESTIONS)} tests passed")
 print(SEP)
 if passed == len(TEST_QUESTIONS):
     print(f"\n  🎉 All paths working! Ready for full 50-question evaluation.")
-    print(f"     venv\\Scripts\\python scripts\\run_evaluation.py")
+    print(f"     python -m georgia_ev_intelligence.scripts.run_llm_comparison --run-id full_$(date +%Y%m%d) --models qwen2.5:14b gemma3:27b --modes rag_only no_rag rag_pretrained rag_pretrained_web")
 elif passed >= 5:
     print(f"\n  ⚠️  {len(TEST_QUESTIONS) - passed} test(s) failed — review before full eval.")
 else:

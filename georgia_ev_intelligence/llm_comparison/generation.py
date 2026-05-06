@@ -19,14 +19,21 @@ import httpx
 
 from llm_comparison.config import GenerationConfig
 from llm_comparison.prompts import build_prompt
-from llm_comparison.retrieval import format_context, retrieve_and_rerank
+from llm_comparison.retrieval import classify_query, format_context, retrieve_and_rerank
 
-logger = logging.getLogger("llm_comparison.modes")
+logger = logging.getLogger("llm_comparison.generation")
 
 
 # ── Ollama generation ───────────────────────────────────────────────────────
 
-def _call_ollama(model: str, prompt: str, base_url: str, timeout: float = 600.0) -> str:
+def _call_ollama(
+    model: str,
+    prompt: str,
+    base_url: str,
+    timeout: float = 600.0,
+    num_ctx: int = 8192,
+    num_predict: int = 800,
+) -> str:
     response = httpx.post(
         f"{base_url}/api/generate",
         json={
@@ -35,8 +42,8 @@ def _call_ollama(model: str, prompt: str, base_url: str, timeout: float = 600.0)
             "stream": False,
             "options": {
                 "temperature": 0.0,
-                "num_predict": 800,
-                "num_ctx": 8192,
+                "num_predict": num_predict,
+                "num_ctx": num_ctx,
             },
         },
         timeout=timeout,
@@ -53,16 +60,25 @@ def _call_ollama(model: str, prompt: str, base_url: str, timeout: float = 600.0)
 
 def _run_tavily(question: str, api_key: str) -> tuple[str, list[dict[str, str]]]:
     if not api_key:
-        raise RuntimeError("TAVILY_API_KEY is required for rag_pretrained_web.")
-    from evaluate.format_runner import _tavily_search_structured
-
-    web_context, sources = _tavily_search_structured(question, api_key=api_key)
-    if not web_context.strip():
-        raise RuntimeError(
-            "Tavily returned no web context for rag_pretrained_web; "
-            "cannot satisfy the all-three-sources mode."
+        logger.warning("TAVILY_API_KEY is not set — rag_pretrained_web will use empty web context.")
+        return "", []
+    try:
+        from evaluate.format_runner import _tavily_search_structured
+        web_context, sources = _tavily_search_structured(question, api_key=api_key)
+        if not web_context.strip():
+            logger.warning(
+                "Tavily returned no web context for question %r — proceeding with empty web context.",
+                question[:60],
+            )
+            return "", []
+        return web_context, sources
+    except Exception as exc:
+        logger.warning(
+            "Tavily search failed for question %r: %s — proceeding with empty web context.",
+            question[:60],
+            exc,
         )
-    return web_context, sources
+        return "", []
 
 
 # ── Mode runners ────────────────────────────────────────────────────────────
@@ -94,6 +110,11 @@ def run_mode(
     out = _empty_result()
 
     try:
+        query_type = classify_query(question)
+        # List questions need a larger context window and more output tokens.
+        num_ctx = 16384 if query_type == "list" else 8192
+        num_predict = 1200 if query_type == "list" else 800
+
         if mode == "no_rag":
             internal_context = ""
             web_context = ""
@@ -109,11 +130,11 @@ def run_mode(
                 rerank_top_n=rerank_top_n,
             )
             retrieved_count = len(hits)
-            actual_rerank_top_n = min(rerank_top_n, retrieved_count)
+            actual_rerank_top_n = retrieved_count
             internal_context = format_context(hits)
             if mode == "rag_pretrained_web":
                 web_context, web_sources = _run_tavily(question, cfg.tavily_api_key)
-                tavily_used = True
+                tavily_used = bool(web_context)
             else:
                 web_context, web_sources = "", []
                 tavily_used = False
@@ -128,7 +149,13 @@ def run_mode(
         )
 
         start = time.monotonic()
-        answer = _call_ollama(model=model, prompt=prompt, base_url=cfg.ollama_base_url)
+        answer = _call_ollama(
+            model=model,
+            prompt=prompt,
+            base_url=cfg.ollama_base_url,
+            num_ctx=num_ctx,
+            num_predict=num_predict,
+        )
         elapsed = time.monotonic() - start
 
         out.update(

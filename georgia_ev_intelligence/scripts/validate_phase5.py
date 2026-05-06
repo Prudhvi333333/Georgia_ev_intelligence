@@ -376,7 +376,7 @@ if __name__ == "__main__":
 
     if failed == 0 and warned == 0:
         print("\n  🚀 All checks passed — Phase 5 is ready for production use!")
-        print("     Next step: venv\\Scripts\\python scripts\\run_ragas_eval.py --questions 50")
+        print("     Next step: python -m georgia_ev_intelligence.scripts.run_llm_comparison --run-id full_$(date +%Y%m%d) --models qwen2.5:14b gemma3:27b --modes rag_only no_rag rag_pretrained rag_pretrained_web")
     elif failed == 0:
         print("\n  ⚠️  Phase 5 is FUNCTIONAL with warnings (see above).")
         print("     Fix warnings before final 50-question eval.")

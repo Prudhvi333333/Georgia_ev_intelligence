@@ -126,55 +126,48 @@ def get_collection_stats() -> dict[str, Any]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_sparse_vector(text: str) -> dict[str, Any]:
+    """Build a sparse BM25-style vector for a text.
+
+    Uses hashlib.sha1 for stable cross-process token indices (Python's
+    built-in hash() is randomized per process via PYTHONHASHSEED and must
+    NOT be used here). VOCAB_SIZE matches llm_comparison/retrieval.py.
+
+    Since Qdrant handles IDF server-side (IDF enabled in dashboard),
+    we only need to provide term frequencies.
+
+    NOTE: if the collection was previously indexed with Python's hash(),
+    re-ingestion is required for sparse/BM25 matching to work correctly.
     """
-    Build a sparse BM25-style vector for a text.
-
-    Since Qdrant handles IDF server-side (we enabled IDF in the dashboard),
-    we just need to provide term frequencies as the sparse vector.
-
-    Format: {"indices": [token_ids], "values": [term_frequencies]}
-
-    We use a simple character n-gram hash approach to generate stable token IDs
-    without needing a separate vocabulary. This matches what the Qdrant sparse
-    index expects when IDF is server-managed.
-    """
+    import hashlib
     import re
-    # Tokenize: lowercase, split on non-alphanumeric
-    tokens = re.findall(r"[a-z0-9]+", text.lower())
 
-    # Remove very common stopwords (they hurt BM25 precision)
-    STOPWORDS = {
+    STOPWORDS = frozenset({
         "the", "a", "an", "and", "or", "but", "in", "on", "at", "to",
         "for", "of", "with", "by", "from", "is", "are", "was", "were",
         "be", "been", "being", "have", "has", "had", "do", "does", "did",
         "will", "would", "could", "should", "may", "might", "shall",
         "this", "that", "these", "those", "it", "its", "as", "up",
-    }
-    tokens = [t for t in tokens if t not in STOPWORDS and len(t) >= 2]
+    })
+    VOCAB_SIZE = 1_048_576  # 2^20 — must match llm_comparison/retrieval.py
+
+    tokens = [t for t in re.findall(r"[a-z0-9]+", text.lower())
+              if t not in STOPWORDS and len(t) >= 2]
 
     if not tokens:
-        # Return minimal sparse vector
         return {"indices": [0], "values": [0.0]}
 
-    # Count term frequencies
     tf: dict[str, int] = {}
     for token in tokens:
         tf[token] = tf.get(token, 0) + 1
 
-    # Convert tokens to integer indices using hash
-    # Use modulo 2^20 (~1M vocab) to stay within Qdrant limits
-    VOCAB_SIZE = 1_048_576  # 2^20
-
     indices = []
     values = []
-    seen_indices: set[int] = set()
+    seen: set[int] = set()
 
     for token, count in tf.items():
-        idx = hash(token) % VOCAB_SIZE
-        if idx < 0:
-            idx += VOCAB_SIZE
-        if idx not in seen_indices:
-            seen_indices.add(idx)
+        idx = int.from_bytes(hashlib.sha1(token.encode()).digest()[:4], "big") % VOCAB_SIZE
+        if idx not in seen:
+            seen.add(idx)
             indices.append(idx)
             values.append(float(count))
 
@@ -464,6 +457,35 @@ def delete_company_chunks(company_name: str) -> int:
         return 1
     except Exception as exc:
         logger.error("Failed to delete chunks for '%s': %s", company_name, exc)
+        return 0
+
+
+def delete_company_record_chunks() -> int:
+    """Delete all GNEM Excel company-record chunks from Qdrant.
+
+    Use before a full company re-embedding pass. This prevents old points that
+    used randomized chunk IDs or randomized sparse hashing from coexisting with
+    the corrected stable points.
+    """
+    client = get_qdrant_client()
+    collection_name = get_collection_name()
+    try:
+        client.delete(
+            collection_name=collection_name,
+            points_selector=models.FilterSelector(
+                filter=Filter(
+                    must=[
+                        FieldCondition(key="source_type", match=MatchValue(value="gnem_excel")),
+                        FieldCondition(key="chunk_type", match=MatchValue(value="company")),
+                    ]
+                )
+            ),
+            wait=True,
+        )
+        logger.info("Deleted existing GNEM Excel company chunks from Qdrant")
+        return 1
+    except Exception as exc:
+        logger.error("Failed to delete GNEM Excel company chunks: %s", exc)
         return 0
 
 

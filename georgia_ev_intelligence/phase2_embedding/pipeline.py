@@ -43,6 +43,8 @@ from phase2_embedding.chunker import (
 )
 from phase2_embedding.embedder import embed_chunks, verify_ollama_embed
 from phase2_embedding.vector_store import (
+    delete_company_chunks,
+    delete_company_record_chunks,
     ensure_collection_exists,
     get_collection_stats,
     upload_chunks,
@@ -96,6 +98,15 @@ def embed_companies(company_filter: str | None = None, reembed: bool = False) ->
         return {"embedded": 0, "skipped": 0, "failed": 0}
 
     logger.info("Processing %d companies...", len(companies))
+
+    if reembed:
+        if company_filter:
+            deleted = 0
+            for company in companies:
+                deleted += delete_company_chunks(company["company_name"])
+            logger.info("Re-embed requested: deleted existing chunks for %d matching companies", deleted)
+        else:
+            delete_company_record_chunks()
 
     all_chunks: list[Chunk] = []
     parent_map: dict[str, Chunk] = {}  # parent_id → parent chunk

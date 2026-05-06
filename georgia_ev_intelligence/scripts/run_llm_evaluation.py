@@ -27,7 +27,7 @@ if str(PKG_ROOT) not in sys.path:
 
 from llm_comparison.config import load_judge_config  # noqa: E402
 from llm_comparison.excel_io import read_generations, write_workbook_atomic  # noqa: E402
-from llm_comparison.ragas_runner import (  # noqa: E402
+from llm_comparison.evaluation import (  # noqa: E402
     ALL_METRICS,
     build_aggregations,
     evaluate_rows,

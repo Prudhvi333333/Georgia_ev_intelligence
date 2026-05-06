@@ -17,6 +17,34 @@ INSUFFICIENT_CONTEXT_SENTENCE = (
     "The retrieved context does not contain enough information to answer this question."
 )
 
+# Field-focus and exhaustive-list instruction injected into all RAG prompts.
+_FIELD_FOCUS = (
+    "Field-focus rules:\n"
+    "  * Read the question carefully to identify the SPECIFIC attribute requested\n"
+    "    (e.g., employment count, tier, location, OEM relationships).\n"
+    "  * Answer ONLY that attribute. Do not include other company fields in the answer.\n"
+    "  * If the question asks to list ALL matching companies, include EVERY company\n"
+    "    from INTERNAL_CONTEXT that satisfies the condition. Do not stop after the first few.\n"
+    "  * Copy company names exactly as they appear in INTERNAL_CONTEXT — character for character.\n"
+)
+
+# Excel-grounded guardrail injected into modes 3 and 4 only.
+# Prevents pretrained/web facts from overwriting or diluting Excel-specific values.
+_EXCEL_GUARDRAIL = (
+    "  * INTERNAL_CONTEXT is the authoritative source for company names, counts,\n"
+    "    roles, tiers, locations, employment, and products. Use pretrained or web\n"
+    "    facts ONLY for clearly labelled background that does not change the\n"
+    "    Excel-grounded answer.\n"
+)
+
+# Incomplete-context warning injected into rag_only for exhaustive questions.
+_INCOMPLETE_CONTEXT = (
+    "  * If the question asks to list ALL matching companies but INTERNAL_CONTEXT\n"
+    "    appears to be an incomplete subset, begin your answer with:\n"
+    "    \"Note: retrieved context may be incomplete.\"\n"
+    "    Then list every company present in INTERNAL_CONTEXT that matches.\n"
+)
+
 
 def _system(mode: str, allowed: list[str], forbidden: list[str], tagging: list[str]) -> str:
     allowed_block = "\n".join(f"  * {item}" for item in allowed)
@@ -49,7 +77,9 @@ def _build_rag_only(question: str, internal_context: str) -> str:
         "Strict instruction: Answer ONLY using INTERNAL_CONTEXT. Do not use any pretrained\n"
         "knowledge. Do not use any web data. If INTERNAL_CONTEXT does not contain enough\n"
         "information to answer the question, your entire answer must be exactly:\n"
-        f"\"{INSUFFICIENT_CONTEXT_SENTENCE}\"\n"
+        f"\"{INSUFFICIENT_CONTEXT_SENTENCE}\"\n\n"
+        f"{_INCOMPLETE_CONTEXT}\n"
+        f"{_FIELD_FOCUS}"
     )
     user = (
         f"Question: {question}\n\n"
@@ -92,6 +122,8 @@ def _build_rag_pretrained(question: str, internal_context: str) -> str:
         "  * Tag every pretrained-derived statement inline with [General knowledge].\n"
         "  * If you cannot contribute any pretrained facts beyond INTERNAL_CONTEXT, append exactly this sentence:\n"
         "    \"No additional pretrained facts contributed.\"\n"
+        f"{_EXCEL_GUARDRAIL}\n"
+        f"{_FIELD_FOCUS}"
     )
     user = (
         f"Question: {question}\n\n"
@@ -121,6 +153,8 @@ def _build_rag_pretrained_web(question: str, internal_context: str, web_context:
         "  * Use INTERNAL_CONTEXT as the primary authority.\n"
         "  * Use WEB_CONTEXT to add recent or missing facts; tag them [Web].\n"
         "  * Use pretrained knowledge for complementary background; tag those [General knowledge].\n"
+        f"{_EXCEL_GUARDRAIL}\n"
+        f"{_FIELD_FOCUS}"
     )
     user = (
         f"Question: {question}\n\n"

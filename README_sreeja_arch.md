@@ -189,6 +189,14 @@ sheet.
   reranker model, judge model/base URL, top_k, rerank_top_n, temperature, total
   rows/questions, and timestamp.
 
+---
+
+## Codebase inspection notes
+
+See `BRANCH_REVIEW_AND_RAG_RECOMMENDATIONS.md` for the branch comparison,
+prompt review, retrieval failure diagnosis, and recommended fixes for
+Excel-grounded structured QA.
+
 `final_score` weights:
 ```
 faithfulness        0.25

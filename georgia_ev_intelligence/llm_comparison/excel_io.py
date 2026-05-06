@@ -8,9 +8,16 @@ temp file + os.replace() to make rewrites atomic.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
+
+EXCEL_MAX_CELL_CHARS = 32767
+# XML 1.0 disallows most C0 control chars. openpyxl raises
+# IllegalCharacterError if any of these appear in scraped/PDF web text.
+_ILLEGAL_XLSX_CHARS = re.compile(r"[\x00-\x08\x0B-\x0C\x0E-\x1F]")
 
 GENERATION_COLUMNS = [
     "run_id",
@@ -38,11 +45,30 @@ GENERATION_COLUMNS = [
 ]
 
 
+def _clean_excel_value(value: Any) -> Any:
+    """Return a value safe for openpyxl/xlsx cells."""
+    if not isinstance(value, str):
+        return value
+    value = _ILLEGAL_XLSX_CHARS.sub("", value)
+    if len(value) > EXCEL_MAX_CELL_CHARS:
+        return value[: EXCEL_MAX_CELL_CHARS - 32] + "\n...[truncated for Excel]..."
+    return value
+
+
+def _clean_excel_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Sanitize object columns before pandas hands values to openpyxl."""
+    cleaned = df.copy()
+    for col in cleaned.select_dtypes(include=["object"]).columns:
+        cleaned[col] = cleaned[col].map(_clean_excel_value)
+    return cleaned
+
+
 def _atomic_write_excel(df: pd.DataFrame, path: Path, sheet_name: str = "generations") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
+    safe_df = _clean_excel_df(df)
     with pd.ExcelWriter(tmp, engine="openpyxl") as writer:
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
+        safe_df.to_excel(writer, sheet_name=sheet_name, index=False)
     os.replace(tmp, path)
 
 
@@ -57,7 +83,7 @@ def write_workbook_atomic(sheets: dict[str, pd.DataFrame], path: Path) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     with pd.ExcelWriter(tmp, engine="openpyxl") as writer:
         for sheet_name, df in sheets.items():
-            df.to_excel(writer, sheet_name=sheet_name[:31], index=False)
+            _clean_excel_df(df).to_excel(writer, sheet_name=sheet_name[:31], index=False)
     os.replace(tmp, path)
 
 

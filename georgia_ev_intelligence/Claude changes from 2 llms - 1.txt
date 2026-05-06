@@ -1,0 +1,2463 @@
+╭─── Claude Code v2.1.129 ─────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│                 Welcome back Surya!                │ started                 │
+│                                                    │ Run /init to create a … │
+│                       ▐▛███▜▌                      │ ─────────────────────── │
+│                      ▝▜█████▛▘                     │ What's new              │
+│                        ▘▘ ▝▝                       │ Fixed VS Code extensio… │
+│ Sonnet 4.6 · Claude Pro · suryatejap24@gmail.com's │ Fixed Mantle endpoint … │
+│  Organization                                      │ Added `--plugin-url <u… │
+│            ~/…/georgia_ev_intelligence             │ /release-notes for more │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+❯ /usage                                                                        
+  ⎿  Set model to Default (Sonnet 4.6 · Best for everyday tasks)
+
+❯ /plan                                                                         
+  ⎿  Enabled plan mode
+
+❯ You are reviewing my Georgia EV Intelligence RAG project.                     
+                                                                                
+  I have two review documents:                                                  
+                                                                                
+  1. /home/sm11926/Downloads/Georgia_ev_intelligence-1/BRANCH_REVIEW_AND_RAG_RE 
+  COMMENDATIONS.md                                                              
+                                                                                
+  2. /home/sm11926/Downloads/Georgia_ev_intelligence-1/georgia_ev_intelligence/ 
+  Claude comparision of 2 branches.txt                                          
+                                                                                
+  Please read both documents carefully and produce the final consolidated list  
+  of fixes required.                                                            
+                                                                                
+  Your task:                                                                    
+                                                                                
+  1. Compare both documents and identify:                                       
+     - fixes that both documents agree on                                       
+     - fixes mentioned only in the first document                               
+     - fixes mentioned only in the second document                              
+     - fixes that conflict with each other                                      
+     - fixes that were already implemented                                      
+     - fixes still pending                                                      
+                                                                                
+  2. Focus especially on:                                                       
+     - retrieval problems                                                       
+     - missing company issue in multi-company answers                           
+     - dense retrieval limitations                                              
+     - reranker truncation                                                      
+     - metadata filtering                                                       
+     - structured Excel row retrieval                                           
+     - hybrid/BM25 retrieval                                                    
+     - query classification                                                     
+     - exhaustive/list/count questions                                          
+     - answer prompt problems                                                   
+     - irrelevant answer generation                                             
+     - RAGAS/evaluation problems                                                
+     - unnecessary files/code/output cleanup                                    
+     - renamed files/import consistency                                         
+     - final run commands                                                       
+                                                                                
+  3. Give me the final required changes in this format:                         
+                                                                                
+  A. Critical fixes required immediately                                        
+  B. Important fixes required next                                              
+  C. Optional improvements                                                      
+  D. Files that must be modified                                                
+  E. Files that should be deleted                                               
+  F. Files that should not be touched                                           
+  G. Risks if these fixes are not done                                          
+  H. Final recommended architecture                                             
+  I. Final exact implementation checklist                                       
+                                                                                
+  4. Be strict.                                                                 
+  Do not repeat generic advice.                                                 
+  Do not suggest changes unless they are supported by one or both documents.    
+  If a fix is already implemented, clearly mark it as “already done”.           
+  If a fix is still missing, clearly mark it as “pending”.                      
+  If the two documents disagree, explain the disagreement and recommend the     
+  safer option for an Excel-based RAG benchmark.                                
+                                                                                
+  5. Important project context:                                                 
+  My benchmark uses one Excel sheet as the knowledge base.                      
+  The 50 questions and golden answers are human-validated from that same Excel  
+  sheet.                                                                        
+  So the main goal is not open-world truth. The goal is Excel-grounded          
+  correctness, complete retrieval of relevant rows, set/count accuracy, and     
+  avoiding irrelevant generated information.                                    
+                                                                                
+  Final output should be a clean engineering action plan that I can directly    
+  use to update the codebase.                                                   
+
+● I'll read both review documents in parallel before planning.
+
+  Read 2 files (ctrl+o to expand)
+
+● Good. Now let me explore the current state of the key files to determine
+  what's already implemented vs. still pending.
+
+● Explore(Explore current state of llm_comparison pipeline files)
+  ⎿  Done (34 tool uses · 44.2k tokens · 1m 2s)
+  (ctrl+o to expand)
+
+● Now I have everything I need. Let me write the plan.
+
+● Updated plan
+  ⎿  /plan to preview
+  ⎿  User rejected Claude's plan:
+     ╭─────────────────────────────────────────────────────────────────────────╮
+     │ Georgia EV Intelligence — Consolidated Fix Plan                         │
+     │                                                                         │
+     │ Context                                                                 │
+     │                                                                         │
+     │ Two review documents exist for the sreeja-arch RAG pipeline:            │
+     │                                                                         │
+     │ - Doc 1: BRANCH_REVIEW_AND_RAG_RECOMMENDATIONS.md — written as a new    │
+     │ architectural review comparing new-Arch vs sreeja-arch, recommending a  │
+     │ combined design.                                                        │
+     │ - Doc 2: georgia_ev_intelligence/Claude comparision of 2 branches.txt — │
+     │  transcript of a prior conversation in which several Doc 1              │
+     │ recommendations were already implemented.                               │
+     │                                                                         │
+     │ The Explore agent verified the actual current state of the codebase.    │
+     │ The plan below is grounded in that verification — not just the          │
+     │ documents.                                                              │
+     │                                                                         │
+     │ Project constraint: One Excel sheet is the sole knowledge base. 50      │
+     │ human-validated questions and golden answers are derived from the same  │
+     │ Excel. Evaluation must focus on Excel-grounded correctness, retrieval   │
+     │ completeness, and set/count accuracy — not open-world truth.            │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Cross-Document Comparison                                               │
+     │                                                                         │
+     │ Fixes both documents agree on                                           │
+     │                                                                         │
+     │ ┌────────────────────────────────────────────────────────────┬───────── │
+     │ ───┐                                                                    │
+     │ │                            Fix                             │   Status │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Increase top_k from 70 → 120                               │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Increase rerank_top_n from 25 → 40 (60 for list queries)   │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Add query-type classifier for list/count/exhaustive        │ ALREADY  │
+     │    │                                                                    │
+     │ │ questions                                                  │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Add field-focus + exhaustive-list instruction to all 3 RAG │ ALREADY  │
+     │    │                                                                    │
+     │ │  prompts                                                   │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Restructure format_context() to field-per-line format      │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Rename modes.py → generation.py                            │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Rename ragas_runner.py → evaluation.py                     │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Update all imports after renames                           │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Delete dead scripts                                        │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Delete old output files (format_eval/.jsonl,               │ ALREADY  │
+     │    │                                                                    │
+     │ │ dashboard/.html, progress/)                                │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Make Tavily failure non-fatal (warning, not RuntimeError)  │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Wire AnswerSimilarity into AnswerCorrectness in RAGAS      │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Add hybrid/BM25 retrieval for exact-phrase matching        │ PENDING  │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Add deterministic set evaluation (company F1, count        │ PENDING  │
+     │    │                                                                    │
+     │ │ exact-match)                                               │          │
+     │    │                                                                    │
+     │ └────────────────────────────────────────────────────────────┴───────── │
+     │ ───┘                                                                    │
+     │                                                                         │
+     │ Fixes only in Doc 1 (not yet implemented)                               │
+     │                                                                         │
+     │ ┌───────────────────────────────────────────────────────┬────────────── │
+     │ ───┐                                                                    │
+     │ │                          Fix                          │     Status    │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────────────────────┼────────────── │
+     │ ───┤                                                                    │
+     │ │ Metadata pre-filtering in retrieval path (tier,       │ PENDING       │
+     │    │                                                                    │
+     │ │ county, role, OEM, employment)                        │               │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────────────────────┼────────────── │
+     │ ───┤                                                                    │
+     │ │ Per-hit metadata in retrieval output: dense_rank,     │ PENDING       │
+     │    │                                                                    │
+     │ │ rerank_score, retrieval_source                        │               │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────────────────────┼────────────── │
+     │ ───┤                                                                    │
+     │ │ Port kb_query_planner / entity_extractor from         │ PENDING (see  │
+     │    │                                                                    │
+     │ │ new-Arch                                              │ conflict      │
+     │ below) │                                                                │
+     │ ├───────────────────────────────────────────────────────┼────────────── │
+     │ ───┤                                                                    │
+     │ │ Multi-view chunking (master/role/product/location     │ PENDING       │
+     │    │                                                                    │
+     │ │ views per company row)                                │ (re-ingestion │
+     │    │                                                                    │
+     │ │                                                       │ required)     │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────────────────────┼────────────── │
+     │ ───┤                                                                    │
+     │ │ Specific fallback prompt rewrites for rag_only,       │ PENDING       │
+     │    │                                                                    │
+     │ │ rag_pretrained, rag_pretrained_web                    │               │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────────────────────┼────────────── │
+     │ ───┤                                                                    │
+     │ │ rag_pretrained/rag_pretrained_web guardrail:          │               │
+     │    │                                                                    │
+     │ │ pretrained/web only for background, not               │ PENDING       │
+     │    │                                                                    │
+     │ │ Excel-grounded facts                                  │               │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────────────────────┼────────────── │
+     │ ───┤                                                                    │
+     │ │ Add soft-filter LLM interpreter (port from            │ PENDING       │
+     │    │                                                                    │
+     │ │ new-Arch/phase4_agent/filter_interpreter.py)          │               │
+     │    │                                                                    │
+     │ └───────────────────────────────────────────────────────┴────────────── │
+     │ ───┘                                                                    │
+     │                                                                         │
+     │ Fixes only in Doc 2 (already implemented, Doc 1 silent on them)         │
+     │                                                                         │
+     │ ┌────────────────────────────────────────────────────────────┬───────── │
+     │ ───┐                                                                    │
+     │ │                            Fix                             │   Status │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Remove hard RuntimeError guard for missing TAVILY_API_KEY  │ ALREADY  │
+     │    │                                                                    │
+     │ │ before generation run                                      │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Update REPO_ROOT comment in run_llm_comparison.py          │ ALREADY  │
+     │    │                                                                    │
+     │ │                                                            │ DONE     │
+     │    │                                                                    │
+     │ ├────────────────────────────────────────────────────────────┼───────── │
+     │ ───┤                                                                    │
+     │ │ Move evaluation_results.md / gnem_analysis_report.md from  │ ALREADY  │
+     │    │                                                                    │
+     │ │ scripts/ to outputs/                                       │ DONE     │
+     │    │                                                                    │
+     │ └────────────────────────────────────────────────────────────┴───────── │
+     │ ───┘                                                                    │
+     │                                                                         │
+     │ Conflicts between documents                                             │
+     │                                                                         │
+     │ Topic: KB query planner                                                 │
+     │ Doc 1 recommendation: Port full kb_query_planner.py +                   │
+     │ entity_extractor.py +                                                   │
+     │   vector_retriever.py from new-Arch                                     │
+     │ Doc 2 decision: Implemented only lightweight classify_query()           │
+     │ Safer option: Doc 2's approach is safer — full new-Arch port requires   │
+     │ Neo4j +                                                                 │
+     │   PostgreSQL; Excel-only benchmark can use a pandas-based deterministic │
+     │  path                                                                   │
+     │   instead                                                               │
+     │ ────────────────────────────────────────                                │
+     │ Topic: Chunking                                                         │
+     │ Doc 1 recommendation: Multi-view per company row                        │
+     │ Doc 2 decision: Keep existing 256/800 parent-child                      │
+     │ Safer option: Doc 1 is stronger for recall, but requires full           │
+     │ re-ingestion;                                                           │
+     │   treat as important but not critical-immediate                         │
+     │                                                                         │
+     │ ---                                                                     │
+     │ A. Critical Fixes Required Immediately                                  │
+     │                                                                         │
+     │ These are still-pending issues that directly cause the "missing company │
+     │  from multi-company answer" failure pattern.                            │
+     │                                                                         │
+     │ A1. Add metadata pre-filtering to retrieval.py                          │
+     │ File: georgia_ev_intelligence/llm_comparison/retrieval.py               │
+     │ Problem (Doc 1, §Diagnosis): Dense-only retrieval includes off-topic    │
+     │ chunks in the top-120 pool, wasting candidate slots. No exact filter    │
+     │ for tier, county, role, or OEM.                                         │
+     │ Fix: Before the dense search, extract structured constraints from the   │
+     │ question (tier label, county name, OEM name, role keyword) using        │
+     │ regex/keyword matching and pass as Qdrant must filters. This narrows    │
+     │ the candidate pool without depending on semantic similarity for exact   │
+     │ terms.                                                                  │
+     │ Status: PENDING                                                         │
+     │                                                                         │
+     │ A2. Add deterministic set evaluation to evaluation.py                   │
+     │ File: georgia_ev_intelligence/llm_comparison/evaluation.py              │
+     │ Problem (Doc 1, §Evaluator): RAGAS LLM judge cannot defend set          │
+     │ completeness for structured Excel questions. LLM scores can hide exact  │
+     │ set misses.                                                             │
+     │ Fix: After RAGAS scoring, add these columns to the output Excel for     │
+     │ every row:                                                              │
+     │ - gold_company_count — count of company names in golden answer          │
+     │ - answer_company_count — count of company names in final answer         │
+     │ - context_company_recall — fraction of golden companies found in        │
+     │ retrieved context                                                       │
+     │ - answer_company_recall — fraction of golden companies found in final   │
+     │ answer                                                                  │
+     │ - answer_company_precision — fraction of answer companies in golden set │
+     │ - answer_company_f1                                                     │
+     │ - count_exact_match — 1/0 for numeric count questions                   │
+     │                                                                         │
+     │ Use simple regex to extract capitalized company-name tokens from golden │
+     │  and generated answers. RAGAS remains the primary LLM score;            │
+     │ deterministic F1 is the secondary defensible metric.                    │
+     │ Status: PENDING                                                         │
+     │                                                                         │
+     │ ---                                                                     │
+     │ B. Important Fixes Required Next                                        │
+     │                                                                         │
+     │ B1. Re-enable hybrid/BM25 retrieval                                     │
+     │ File: georgia_ev_intelligence/llm_comparison/retrieval.py               │
+     │ Both documents agree: sparse/BM25 is bypassed in sreeja-arch but the    │
+     │ Qdrant collection already has sparse vector fields. Exact phrases like  │
+     │ "DC-to-DC", "powder coating", "chemical manufacturing", "R&D", and      │
+     │ company names get no lexical boost from dense-only retrieval.           │
+     │ Fix: In retrieve_and_rerank(), if the Qdrant collection has a sparse    │
+     │ named vector, issue a hybrid query (dense + sparse) using               │
+     │ models.Prefetch. Fall back gracefully to dense-only if the collection   │
+     │ has no sparse vector.                                                   │
+     │ Status: PENDING                                                         │
+     │                                                                         │
+     │ B2. Fix rag_pretrained / rag_pretrained_web prompt guardrail            │
+     │ File: georgia_ev_intelligence/llm_comparison/prompts.py                 │
+     │ Doc 1, §Answer Generation Prompts: modes 3 and 4 can force the model to │
+     │  add pretrained/web facts that contradict or dilute the Excel-grounded  │
+     │ answer. Since the golden answers are Excel-derived, this is a source of │
+     │  false-negative RAGAS scores.                                           │
+     │ Fix: Add one explicit line to both prompts:                             │
+     │                                                                         │
+     │ ▎ Use INTERNAL_CONTEXT as the source of truth for all Excel-specific    │
+     │ ▎ companies, counts, roles, locations, and products. Use pretrained/web │
+     │ ▎  facts only for clearly labelled background that does not change the  │
+     │ ▎ Excel-grounded answer.                                                │
+     │                                                                         │
+     │ This is strictly in addition to the existing tagging rules — not a      │
+     │ replacement.                                                            │
+     │ Status: PENDING                                                         │
+     │                                                                         │
+     │ B3. Add retrieval_source tag and scores to each hit                     │
+     │ File: georgia_ev_intelligence/llm_comparison/retrieval.py               │
+     │ Doc 1, §Concrete Fixes #3: every hit should carry dense_rank,           │
+     │ dense_score, rerank_score, and retrieval_source ("dense", "hybrid",     │
+     │ "fallback"). This is needed for debugging and for the deterministic     │
+     │ evaluation in A2 to determine which companies were retrievable.         │
+     │ Fix: In _search_dense(), attach rank and score to each result dict. In  │
+     │ retrieve_and_rerank(), attach rerank_score and retrieval_source. These  │
+     │ fields are passed through format_context() but not displayed in the     │
+     │ prompt — they are stored in the generations Excel for auditing.         │
+     │ Status: PENDING                                                         │
+     │                                                                         │
+     │ ---                                                                     │
+     │ C. Optional Improvements                                                │
+     │                                                                         │
+     │ C1. Multi-view chunking (re-ingestion required)                         │
+     │ Doc 1, §Chunking: new-Arch creates separate role/product/OEM/location   │
+     │ sub-chunks per company row in addition to the master chunk. This gives  │
+     │ structured Excel rows multiple semantic entry points.                   │
+     │ Risk: Requires full Qdrant re-ingestion. Do not do this unless the      │
+     │ metadata pre-filter (A1) and hybrid retrieval (B1) are confirmed        │
+     │ insufficient.                                                           │
+     │ Status: PENDING — low priority, requires re-ingestion                   │
+     │                                                                         │
+     │ C2. Port soft-filter LLM interpreter                                    │
+     │ Doc 1, §Retrieval Prompts: new-Arch/phase4_agent/filter_interpreter.py  │
+     │ asks the LLM to choose extra Qdrant filters from within the current     │
+     │ candidate set. Useful for ambiguous phrases ("primary", "specific",     │
+     │ "suitable").                                                            │
+     │ Risk: Over-filtering can remove valid rows. Must be combined with the   │
+     │ safe rewrite: "Choose extra filters only when the question explicitly   │
+     │ requires them. If uncertain, return no extra filters."                  │
+     │ Status: PENDING — optional                                              │
+     │                                                                         │
+     │ C3. Pandas/SQL lookup path for counting questions                       │
+     │ Doc 2, §Remaining Risks: even at rerank_top_n=60, questions requiring   │
+     │ >60 matching companies will truncate. True fix for counting/aggregate   │
+     │ questions is a direct pandas query on the Excel file, bypassing vector  │
+     │ search entirely.                                                        │
+     │ Status: PENDING — future experiment                                     │
+     │                                                                         │
+     │ ---                                                                     │
+     │ D. Files That Must Be Modified                                          │
+     │                                                                         │
+     │ ┌─────────────────────────────────────────┬──────────────────────────── │
+     │ ────┐                                                                   │
+     │ │                  File                   │         What to change      │
+     │     │                                                                   │
+     │ ├─────────────────────────────────────────┼──────────────────────────── │
+     │ ────┤                                                                   │
+     │ │                                         │ A1: add metadata            │
+     │ pre-filter;   │                                                         │
+     │ │ georgia_ev_intelligence/llm_comparison/ │ B1: hybrid search; B3: add  │
+     │     │                                                                   │
+     │ │ retrieval.py                            │                             │
+     │ dense_rank/rerank_score/retrie │                                        │
+     │ │                                         │ val_source to hits          │
+     │     │                                                                   │
+     │ ├─────────────────────────────────────────┼──────────────────────────── │
+     │ ────┤                                                                   │
+     │ │ georgia_ev_intelligence/llm_comparison/ │ A2: add deterministic set   │
+     │     │                                                                   │
+     │ │ evaluation.py                           │ evaluation columns          │
+     │     │                                                                   │
+     │ ├─────────────────────────────────────────┼──────────────────────────── │
+     │ ────┤                                                                   │
+     │ │ georgia_ev_intelligence/llm_comparison/ │ B2: add Excel-grounded      │
+     │     │                                                                   │
+     │ │ prompts.py                              │ guardrail to rag_pretrained │
+     │     │                                                                   │
+     │ │                                         │ and rag_pretrained_web      │
+     │     │                                                                   │
+     │ └─────────────────────────────────────────┴──────────────────────────── │
+     │ ────┘                                                                   │
+     │                                                                         │
+     │ ---                                                                     │
+     │ E. Files That Should Be Deleted                                         │
+     │                                                                         │
+     │ All confirmed-dead files are already deleted per Doc 2 implementation   │
+     │ and verified by Explore agent:                                          │
+     │                                                                         │
+     │ - ~~`scripts/run_ragas_eval.py`~~ — gone                                │
+     │ - ~~`scripts/run_evaluation.py`~~ — gone                                │
+     │ - ~~`scripts/run_format_eval.py`~~ — gone                               │
+     │ - ~~`scripts/generate_dashboard.py`~~ — gone                            │
+     │ - ~~`scripts/debug_db.py, check_status.py, check_columns.py,            │
+     │ _check_data.py, code_review.py`~~ — gone                                │
+     │ - ~~`scratch_check_tables.py`~~ — gone                                  │
+     │ - ~~`outputs/format_eval/*.jsonl`~~ — gone                              │
+     │ - ~~`outputs/dashboard/comparison_report.html`~~ — gone                 │
+     │ - ~~`outputs/progress/`~~ — gone                                        │
+     │ - ~~`outputs/llm_comparison/debug_smoke_env_fix/`~~ — gone              │
+     │                                                                         │
+     │ One remaining candidate to verify: outputs/ragas_reports/ — check if    │
+     │ any pre-rename RAGAS reports (phase4_ragas_*.xlsx) still exist. If yes, │
+     │  they are stale (pre-evaluation.py rename) and should be deleted.       │
+     │                                                                         │
+     │ ---                                                                     │
+     │ F. Files That Should Not Be Touched                                     │
+     │                                                                         │
+     │ ┌───────────────────────────────────────┬────────────────────────────── │
+     │ ───┐                                                                    │
+     │ │                 File                  │             Reason            │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ llm_comparison/config.py              │ Correct; all env var loading  │
+     │ is │                                                                    │
+     │ │                                       │  here                         │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ llm_comparison/excel_io.py            │ Correct; atomic write logic   │
+     │ is  │                                                                   │
+     │ │                                       │ stable                        │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ llm_comparison/generation.py          │ Recently renamed + correct;   │
+     │ do  │                                                                   │
+     │ │                                       │ not touch                     │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ llm_comparison/evaluation.py          │ Recently renamed + weights    │
+     │    │                                                                    │
+     │ │                                       │ correct; only add A2 columns  │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ scripts/run_llm_comparison.py         │ Recently updated; only change │
+     │    │                                                                    │
+     │ │                                       │ if imports change             │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ scripts/run_llm_evaluation.py         │ Correct after ragas_runner →  │
+     │    │                                                                    │
+     │ │                                       │ evaluation rename             │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ phase2_embedding/, phase4_agent/,     │ Not part of the comparison    │
+     │    │                                                                    │
+     │ │ phase5_fewshot/                       │ pipeline; do not touch        │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ evaluate/format_runner.py             │ Used by generation.py for     │
+     │    │                                                                    │
+     │ │                                       │ Tavily; do not modify         │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ .env.example                          │ Already correct per Doc 2     │
+     │    │                                                                    │
+     │ ├───────────────────────────────────────┼────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ README_sreeja_arch.md                 │ Update only after all pending │
+     │    │                                                                    │
+     │ │                                       │ fixes are done                │
+     │    │                                                                    │
+     │ └───────────────────────────────────────┴────────────────────────────── │
+     │ ───┘                                                                    │
+     │                                                                         │
+     │ ---                                                                     │
+     │ G. Risks If These Fixes Are Not Done                                    │
+     │                                                                         │
+     │ ┌───────────────────────┬────────────────────────────────────────────── │
+     │ ───┐                                                                    │
+     │ │         Risk          │                   Consequence                 │
+     │    │                                                                    │
+     │ ├───────────────────────┼────────────────────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ No metadata           │ Dense top-120 pool contains off-topic chunks; │
+     │    │                                                                    │
+     │ │ pre-filter (A1 not    │ multi-company list answers continue to miss   │
+     │    │                                                                    │
+     │ │ done)                 │ companies                                     │
+     │    │                                                                    │
+     │ ├───────────────────────┼────────────────────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ No deterministic set  │ RAGAS LLM scores hide exact set misses;       │
+     │ cannot  │                                                               │
+     │ │ evaluation (A2 not    │ determine whether retrieval or generation is  │
+     │    │                                                                    │
+     │ │ done)                 │ the failure                                   │
+     │    │                                                                    │
+     │ ├───────────────────────┼────────────────────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ No hybrid/BM25 (B1    │ Exact company names and product phrases rely  │
+     │ on │                                                                    │
+     │ │ not done)             │  semantic similarity; "DC-to-DC", "powder     │
+     │    │                                                                    │
+     │ │                       │ coating", "R&D" queries under-recall          │
+     │    │                                                                    │
+     │ ├───────────────────────┼────────────────────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ No rag_pretrained     │ Modes 3 and 4 can introduce non-Excel facts,  │
+     │    │                                                                    │
+     │ │ guardrail (B2 not     │ producing false negatives in RAGAS            │
+     │    │                                                                    │
+     │ │ done)                 │ answer_correctness for Excel-grounded answers │
+     │    │                                                                    │
+     │ ├───────────────────────┼────────────────────────────────────────────── │
+     │ ───┤                                                                    │
+     │ │ Multi-view chunking   │ Company rows with narrow role/product text    │
+     │    │                                                                    │
+     │ │ not done              │ embed poorly for role-specific questions;     │
+     │    │                                                                    │
+     │ │                       │ one-chunk-per-row limits semantic entry       │
+     │ points  │                                                               │
+     │ └───────────────────────┴────────────────────────────────────────────── │
+     │ ───┘                                                                    │
+     │                                                                         │
+     │ ---                                                                     │
+     │ H. Final Recommended Architecture                                       │
+     │                                                                         │
+     │ Keep sreeja-arch as the experiment runner. Augment retrieval only — do  │
+     │ not port the full new-Arch agent stack.                                 │
+     │                                                                         │
+     │ Question                                                                │
+     │   │                                                                     │
+     │   ├─ classify_query() [DONE]                                            │
+     │   │     ├─ "list" → rerank_top_n=60, no truncation                      │
+     │   │     └─ "point" → rerank_top_n=40                                    │
+     │   │                                                                     │
+     │   ├─ extract_filters() [PENDING - A1]                                   │
+     │   │     Regex/keyword: tier label, county name, OEM name, role keyword  │
+     │   │     → Qdrant must-filters                                           │
+     │   │                                                                     │
+     │   ├─ Dense + sparse hybrid query [PENDING - B1]                         │
+     │   │     top_k=120, with sparse fallback if no sparse vector             │
+     │   │                                                                     │
+     │   ├─ Cross-encoder rerank [DONE - mandatory, hard fail]                 │
+     │   │     Attaches dense_rank, rerank_score, retrieval_source [PENDING -  │
+     │ B3]                                                                     │
+     │   │                                                                     │
+     │   ├─ format_context() [DONE - structured field-per-line]                │
+     │   │                                                                     │
+     │   ├─ 4 mode prompts [DONE] + Excel guardrail for modes 3/4 [PENDING -   │
+     │ B2]                                                                     │
+     │   │                                                                     │
+     │   ├─ Ollama generate (temperature=0) [DONE]                             │
+     │   │                                                                     │
+     │   ├─ RAGAS evaluation (official, Kimi 2.6 judge) [DONE]                 │
+     │   │                                                                     │
+     │   └─ Deterministic set evaluation [PENDING - A2]                        │
+     │        company F1, count exact match                                    │
+     │                                                                         │
+     │ ---                                                                     │
+     │ I. Final Implementation Checklist                                       │
+     │                                                                         │
+     │ In recommended execution order:                                         │
+     │                                                                         │
+     │ - A1 — Add extract_filters(question) -> dict to retrieval.py; pass as   │
+     │ Qdrant must filters in _search_dense(). Cover: tier ("Tier 1", "Tier    │
+     │ 2"), county names from KB, OEM names ("Hyundai", "Kia", "Ford"), role   │
+     │ keywords ("Battery Cell", "Battery Pack"), employment thresholds        │
+     │ (">1000", "<200"). Fall back to no filter if extraction is empty.       │
+     │ - B1 — In retrieve_and_rerank(), attempt hybrid query if collection has │
+     │  sparse vector. Detect with                                             │
+     │ client.get_collection(cfg.collection_name).config.params.vectors — if a │
+     │  "sparse" key exists, use models.SearchRequest with prefetch. Log which │
+     │  path was used.                                                         │
+     │ - B3 — Attach dense_rank (int), dense_score (float), rerank_score       │
+     │ (float), retrieval_source ("hybrid"/"dense"/"fallback") to every hit    │
+     │ dict in retrieve_and_rerank(). Store in generated Excel row (not in     │
+     │ prompt context).                                                        │
+     │ - B2 — In prompts.py, append this line to the instruction block of      │
+     │ _build_rag_pretrained() and _build_rag_pretrained_web():                │
+     │ ▎ "Use INTERNAL_CONTEXT as the source of truth for all Excel-specific   │
+     │ companies, counts, roles, locations, and products. Use pretrained/web   │
+     │ facts only for clearly labelled background that does not change the     │
+     │ Excel-grounded answer."                                                 │
+     │ - A2 — In evaluation.py, add _compute_deterministic_metrics(row) that:  │
+     │   a. Extracts company names from golden_answer and answer using a regex │
+     │  that matches runs of title-case words (or exact matches against the    │
+     │ 205-company name list loaded from Excel)                                │
+     │   b. Computes context_company_recall, answer_company_recall,            │
+     │ answer_company_precision, answer_company_f1                             │
+     │   c. For rows where golden_answer contains a standalone integer (count  │
+     │ answer), computes count_exact_match                                     │
+     │   d. Writes these as new columns in the RAGAS output Excel              │
+     │ - README update — After all above are done, update                      │
+     │ README_sreeja_arch.md to document the new retrieval path, new           │
+     │ evaluation columns, and the two final run commands.                     │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Final Run Commands (already correct, no change needed)                  │
+     │                                                                         │
+     │ # Command 1 — all 50 questions, both models, all 4 modes, generate +    │
+     │ evaluate                                                                │
+     │ python -m georgia_ev_intelligence.scripts.run_llm_comparison \          │
+     │   --run-id full_20260506 \                                              │
+     │   --models qwen2.5:14b gemma3:27b \                                     │
+     │   --modes rag_only no_rag rag_pretrained rag_pretrained_web             │
+     │                                                                         │
+     │ # Command 2 — specific question IDs only                                │
+     │ python -m georgia_ev_intelligence.scripts.run_llm_comparison \          │
+     │   --run-id targeted_20260506 \                                          │
+     │   --models qwen2.5:14b gemma3:27b \                                     │
+     │   --modes rag_only no_rag rag_pretrained rag_pretrained_web \           │
+     │   --question-ids 5 7 10 22                                              │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Verification After Implementation                                       │
+     │                                                                         │
+     │ # Import check                                                          │
+     │ cd /home/sm11926/Downloads/Georgia_ev_intelligence-1                    │
+     │ python -c "                                                             │
+     │ from georgia_ev_intelligence.llm_comparison.retrieval import            │
+     │ retrieve_and_rerank, extract_filters, classify_query                    │
+     │ from georgia_ev_intelligence.llm_comparison.evaluation import           │
+     │ evaluate_rows, ALL_METRICS                                              │
+     │ print('imports OK')                                                     │
+     │ "                                                                       │
+     │                                                                         │
+     │ # Smoke test — 2 questions, both models, all 4 modes, generate +        │
+     │ evaluate                                                                │
+     │ python -m georgia_ev_intelligence.scripts.run_llm_comparison \          │
+     │   --run-id smoke_postfix \                                              │
+     │   --question-ids 7 14 \                                                 │
+     │   --models qwen2.5:14b gemma3:27b \                                     │
+     │   --modes rag_only no_rag rag_pretrained rag_pretrained_web             │
+     │                                                                         │
+     │ # Verify:                                                               │
+     │ # - generations.xlsx has 16 rows (2 qids × 2 models × 4 modes)          │
+     │ # - RAG modes have non-empty retrieved_context                          │
+     │ # - evaluation output Excel has deterministic columns                   │
+     │ (answer_company_f1, etc.)                                               │
+     │ # - no RuntimeError for rag_pretrained_web if TAVILY_API_KEY missing    │
+     ╰─────────────────────────────────────────────────────────────────────────╯
+
+❯ Below is the consolidated engineering action plan from both documents.        
+                                                                                
+  A. Critical Fixes Required Immediately                                        
+                                                                                
+  KB-first structured retrieval for Excel questions — pending                   
+  Both documents agree dense-only retrieval is the main failure. For            
+  Excel-derived questions, retrieval must first use structured row filtering    
+  before semantic search.                                                       
+  Required: add deterministic retrieval for tier, county, city, role, OEM,      
+  facility type, classification, EV relevance, employment thresholds, product   
+  keywords, counts, top-N, and area aggregates.                                 
+                                                                                
+  Stop treating exhaustive/list/count questions as normal top-K vector search — 
+   pending                                                                      
+  Current partial fix exists, but it is not enough.                             
+  Already done: top_k increased to 120; rerank_top_n default increased to 40;   
+  list queries auto-expand to 60.                                               
+  Pending: for “all/every/list/how many/count/top/which areas” questions,       
+  bypass fixed rerank_top_n and return all exact matching rows or a             
+  deterministic aggregate table.                                                
+                                                                                
+  Metadata filtering before reranking — pending                                 
+  Both documents agree this is missing in sreeja-arch.                          
+  Required: filter candidates by exact Excel metadata before reranking.         
+  Reranker should order valid candidates, not decide which rows exist.          
+                                                                                
+  Hybrid/BM25 or direct lexical matching — pending                              
+  Both documents agree dense retrieval alone misses exact phrases and           
+  company/product terms.                                                        
+  Required: add BM25/sparse/hybrid or direct substring matching for company     
+  names, product/service text, acronyms, role phrases, and exact field values.  
+                                                                                
+  Deterministic set/count evaluation — pending                                  
+  RAGAS alone is not defensible for this Excel benchmark.                       
+  Required: add company-set recall, answer precision, answer F1, context        
+  recall, count exact match, and aggregate exact match where possible.          
+                                                                                
+  Fix the “missing 3rd company” failure at retrieval level — pending            
+  Prompt changes cannot fix rows that never reach context.                      
+  Required: ensure the retrieved context contains the full golden-relevant set  
+  before generation.                                                            
+                                                                                
+  B. Important Fixes Required Next                                              
+                                                                                
+  Query classification / planning — partially done                              
+  Already done: lightweight classify_query() exists in                          
+  llm_comparison/retrieval.py.                                                  
+  Pending: replace the simple regex classifier with a real planner like         
+  new-Arch’s KBQueryPlan, covering list, count, top-N, aggregate, exact-match,  
+  product phrase, OEM-network, risk, and area set-difference questions.         
+                                                                                
+  Answer prompt row-completeness rules — partially done                         
+  Already done: field-focus and exhaustive-list instructions were added to RAG  
+  prompts.                                                                      
+  Pending: add a stronger Excel-grounded rule: if context is incomplete for an  
+  exhaustive question, say retrieval is incomplete instead of giving a partial  
+  answer.                                                                       
+                                                                                
+  Structured context formatting — partially done                                
+  Already done: format_context() now uses field-per-line context.               
+  Pending: fix field coverage. It currently reads products, but payloads often  
+  use products_services or products_services_full. It should include all        
+  preserved Excel fields consistently.                                          
+                                                                                
+  Preserve retrieval debug metadata — pending                                   
+  Required output per hit: dense rank, dense score, rerank score, chunk ID,     
+  company name, row ID, tier, role, county, city, employment, OEMs, product     
+  text, retrieval source.                                                       
+                                                                                
+  Standardize scoring if comparing branches — pending                           
+  The second document says branch scoring weights differ; the first emphasizes  
+  RAGAS + deterministic metrics. Safer decision: do not compare old new-Arch    
+  custom scores against sreeja-arch final scores unless weights and judge are   
+  standardized.                                                                 
+                                                                                
+  C. Optional Improvements                                                      
+                                                                                
+  Multi-view company chunks from new-Arch — pending.                            
+  Useful for recall, but secondary to structured retrieval.                     
+                                                                                
+  Larger context window for list questions — optional.                          
+  This helps only after retrieval is complete.                                  
+                                                                                
+  Tavily graceful failure — already done.                                       
+  generation.py now warns and proceeds with empty web context.                  
+                                                                                
+  File renames for clarity — already done.                                      
+  modes.py -> generation.py; ragas_runner.py -> evaluation.py.                  
+                                                                                
+  D. Files That Must Be Modified                                                
+                                                                                
+  georgia_ev_intelligence/llm_comparison/retrieval.py                           
+  Add structured retrieval, metadata filters, hybrid/BM25/direct lexical        
+  matching, exhaustive mode, and retrieval debug fields.                        
+                                                                                
+  georgia_ev_intelligence/llm_comparison/prompts.py                             
+  Strengthen Excel-grounded completeness and partial-context behavior.          
+                                                                                
+  georgia_ev_intelligence/llm_comparison/evaluation.py                          
+  Add deterministic set/count metrics alongside RAGAS.                          
+                                                                                
+  georgia_ev_intelligence/scripts/run_llm_comparison.py                         
+  Ensure defaults and imports remain consistent after retrieval/evaluation      
+  changes.                                                                      
+                                                                                
+  georgia_ev_intelligence/scripts/run_llm_evaluation.py                         
+  Include deterministic metric sheets/columns in the report.                    
+                                                                                
+  README_sreeja_arch.md                                                         
+  Document final architecture, commands, env vars, and deterministic metrics.   
+                                                                                
+  E. Files That Should Be Deleted                                               
+  Already deleted according to current tree/status:                             
+                                                                                
+  old modes.py                                                                  
+  old ragas_runner.py                                                           
+  old dashboard/JSONL/progress outputs                                          
+  several dead debug/eval scripts listed in the Claude document                 
+  Be careful: deletions are currently uncommitted. Review before committing,    
+  especially old scripts, because some may still be useful references.          
+                                                                                
+  F. Files That Should Not Be Touched                                           
+                                                                                
+  kb/Human validated 50 questions.xlsx                                          
+  Do not modify benchmark data unless you are explicitly correcting the gold    
+  set.                                                                          
+                                                                                
+  .env                                                                          
+  Secrets and local endpoints only.                                             
+                                                                                
+  Existing generated result workbooks used for comparison, unless intentionally 
+   regenerating.                                                                
+                                                                                
+  main and other branches.                                                      
+  Keep this work isolated to sreeja-arch.                                       
+                                                                                
+  G. Risks If These Fixes Are Not Done                                          
+                                                                                
+  Multi-company answers will keep missing valid companies.                      
+  Average score will stay misleadingly low because context recall is weak.      
+  Reranker will keep truncating correct rows after dense retrieval.             
+  RAGAS may score fluently written partial answers higher than they deserve.    
+  Mode 3/4 may introduce irrelevant pretrained/web facts into an Excel-only     
+  benchmark.                                                                    
+  Branch scores will be hard to defend if scoring logic differs.                
+  The benchmark will measure embedding luck, not Excel-grounded QA ability.     
+  H. Final Recommended Architecture                                             
+  Use sreeja-arch as the experiment harness, but replace its retrieval core     
+  with new-Arch-style KB-first retrieval.                                       
+                                                                                
+  Recommended flow:                                                             
+                                                                                
+  Question -> query planner -> exact Excel row filters / aggregate logic ->     
+  optional hybrid/BM25 expansion -> rerank only for ordering -> row-preserving  
+  context -> answer generation -> RAGAS + deterministic set/count evaluation.   
+                                                                                
+  Dense retrieval should be fallback or ordering support, not the primary gate  
+  for structured Excel questions.                                               
+                                                                                
+  I. Final Exact Implementation Checklist                                       
+                                                                                
+  Add structured query planner for the 50 benchmark question types.             
+  Load/search full Excel-derived company rows for structured questions.         
+  Apply metadata filters before dense search/reranking.                         
+  Add BM25/sparse/direct lexical matching for exact terms.                      
+  For exhaustive/list/count questions, return all matching rows, not top-N.     
+  Fix product field mapping in format_context().                                
+  Add dense/rerank/debug metadata to generations.xlsx.                          
+  Strengthen prompts for incomplete exhaustive context.                         
+  Add deterministic company-set/count metrics to evaluation.                    
+  Keep official RAGAS, including the already-done AnswerSimilarity fix.         
+  Verify renamed imports after generation.py / evaluation.py.                   
+  Run smoke test: 2 questions x 2 models x 4 modes.                             
+  Run full 50-question benchmark only after retrieval recall is fixed. These    
+  are the changes what i thought, Look into these and make your final           
+  suggestions for best retrieval, answer generation and Ragas evalution.        
+
+● Let me read the current state of the key files before making recommendations.
+
+  Read 4 files (ctrl+o to expand)
+
+● Now let me check what payload fields actually exist in Qdrant and what the KB
+  Excel structure looks like.
+
+● Explore(Check Qdrant payload fields and KB Excel columns)
+  ⎿  Done (13 tool uses · 48.1k tokens · 51s)
+  (ctrl+o to expand)
+
+● Now I have the complete picture. Let me update the plan with precise,
+  code-grounded recommendations.
+
+● Updated plan
+  ⎿  /plan to preview
+
+● User approved Claude's plan
+  ⎿  Plan saved to: ~/.claude/plans/you-are-reviewing-my-swift-feigenbaum.md · 
+     /plan to edit
+     Georgia EV Intelligence — Final Suggestions: Retrieval, Generation, 
+     Evaluation
+
+     Context
+
+     Benchmark: 205 Georgia EV companies in one Excel sheet, 50 human-validated
+     questions and golden
+     answers derived from that same Excel. Goal is Excel-grounded correctness,
+     complete row recall, and
+     set/count accuracy — not open-world truth.
+
+     Current branch: sreeja-arch. Code verified by reading the actual files.
+
+     ---
+     Confirmed Bug (fix this before anything else)
+
+     format_context() in retrieval.py line 196 reads "products" — that key does 
+     not exist in the Qdrant payload.
+
+     # WRONG (line 196)
+     products = meta.get("products", "")
+
+     # RIGHT — the actual payload field name from chunker.py
+     products = meta.get("products_services", "")
+
+     The Explore agent confirmed the payload field is products_services (from
+     the product / service
+     Excel column via kb_loader.py). With this bug in place, every company block
+      in the LLM's context
+     is missing its products/services text — the most content-rich field. Fix
+     this first.
+
+     Additional field fixes for format_context():
+     - Remove the meta.get("total_employment", "") fallback — that field does
+     not exist; only
+     "employment" does.
+     - Add location_city (meta.get("location_city", "")) — city is in the
+     payload and many
+     questions ask about specific cities.
+     - Add ev_battery_relevant (meta.get("ev_battery_relevant", "")) — needed
+     for EV relevance
+     questions.
+     - Add facility_type (meta.get("facility_type", "")) — needed for
+     facility-type filter questions.
+     - Add industry_group (meta.get("industry_group", "")) — useful for
+     sector-level questions.
+
+     ---
+     A. Best Retrieval
+
+     A1. Enable hybrid (dense + sparse) — highest ROI, collection already 
+     supports it
+
+     The Qdrant collection is configured with both dense (768-dim cosine) and
+     sparse (BM25 with IDF)
+     named vectors. The sparse vector is currently bypassed in
+     retrieve_and_rerank(). Enabling it
+     requires only a small change to _search_dense().
+
+     Why this matters: Dense embeddings miss exact terms: company names spelled
+     differently,
+     "DC-to-DC", "powder coating", "Tier 1", county names, OEM names like
+     "Hyundai" or "Kia". BM25
+     catches these by exact token match. Hybrid = best of both.
+
+     How to implement (in retrieval.py):
+
+     from qdrant_client import models
+
+     def _search_hybrid(client, collection, dense_name, sparse_name,
+                        query_vector, sparse_vector, top_k):
+         results = client.query_points(
+             collection_name=collection,
+             prefetch=[
+                 models.Prefetch(query=query_vector, using=dense_name,
+     limit=top_k),
+                 models.Prefetch(query=sparse_vector, using=sparse_name,
+     limit=top_k),
+             ],
+             query=models.FusionQuery(fusion=models.Fusion.RRF),
+             limit=top_k,
+             with_payload=True,
+         )
+         # ... build hits list same as _search_dense
+
+     Build the sparse vector from the query text using the same hash-based
+     term-frequency logic in
+     phase2_embedding/vector_store.py. If the collection has no sparse vector
+     (graceful fallback),
+     log a warning and fall through to dense-only.
+
+     Config already has qdrant_sparse_name (env var QDRANT_SPARSE_VECTOR_NAME,
+     default "sparse").
+
+     A2. Add lightweight metadata pre-filtering
+
+     For questions that explicitly name a tier, county, OEM, employment
+     threshold, or role, add a Qdrant
+     Filter before the vector search. This narrows the 120-candidate pool so
+     correct companies are not
+     competing against off-topic chunks for the top-K slots.
+
+     Implement extract_filters(question: str) -> models.Filter | None in
+     retrieval.py:
+
+     _TIER_MAP = {
+         "tier 1": "Tier 1", "tier1": "Tier 1",
+         "tier 2": "Tier 2", "tier2": "Tier 2",
+         "tier 1/2": "Tier 1/2",
+         "oem": "OEM",
+     }
+     _COUNTIES = {  # load from known Georgia counties list or hardcode the ~30 
+     in the KB
+         "troup", "gwinnett", "muscogee", "chatham", "cobb", "fulton", ...
+     }
+     _OEMS = {"hyundai", "kia", "ford", "gm", "rivian", "bmw", "honda",
+     "toyota", ...}
+
+     Build a models.Filter(must=[...]) with FieldCondition clauses for each
+     matched constraint.
+     Pass it as the query_filter argument to query_points / Prefetch.
+
+     Rules:
+     - Only apply a filter when the question text explicitly names the
+     constraint.
+     - Never apply a filter for ambiguous or inferred constraints.
+     - If extraction returns nothing, run without filter (no silent drops).
+
+     A3. Fix the rerank_top_n hard cap for exhaustive questions
+
+     Current: list queries auto-expand to rerank_top_n=60. This is still a hard
+     cap — questions with
+
+     ▎ 60 matching companies will truncate.
+
+     Better approach: for list/count questions, return all reranked hits above a
+      score threshold
+     rather than a fixed top-N.
+
+     if query_type == "list":
+         # Return everything above a minimum rerank score threshold, no hard 
+     cap.
+         RERANK_THRESHOLD = -5.0  # cross-encoder scores are log-scale; -5.0 is 
+     permissive
+         return [h for h in reranked if h.get("rerank_score", 0.0) >
+     RERANK_THRESHOLD]
+
+     For point queries, keep the rerank_top_n cap as-is.
+
+     A4. Bump num_ctx for list questions
+
+     When the context contains 40–60+ company blocks, 8192 tokens may be too
+     small. In generation.py
+     _call_ollama(), accept num_ctx as a parameter and pass 16384 for list
+     queries:
+
+     query_type = classify_query(question)
+     num_ctx = 16384 if query_type == "list" else 8192
+
+     Pass query_type (or the computed num_ctx) from run_mode() into
+     _call_ollama().
+
+     ---
+     B. Best Answer Generation
+
+     B1. Fix the products field bug (see Confirmed Bug above)
+
+     This is the most impactful single-line change. Without it, every RAG mode
+     context block is missing
+     product/service text.
+
+     B2. Add Excel-grounded guardrail to rag_pretrained and rag_pretrained_web
+
+     Currently _FIELD_FOCUS is injected into modes 3 and 4, but those prompts
+     still say "MUST use
+     BOTH sources" / "MUST use ALL THREE sources". This forces the LLM to add
+     pretrained/web facts even
+     for Excel-specific company attributes. When the golden answer is purely
+     Excel-derived, any added
+     non-Excel facts can introduce wrong counts, wrong companies, or wrong
+     attributes.
+
+     Add this sentence to the extra block of _build_rag_pretrained() and
+     _build_rag_pretrained_web(), just before the _FIELD_FOCUS block:
+
+     "  * INTERNAL_CONTEXT is the authoritative source for company names,
+     counts, roles,\n"
+     "    tiers, locations, employment, and products. Use pretrained/web facts
+     ONLY for\n"
+     "    background context that does NOT change the Excel-grounded answer.\n"
+
+     B3. Add incomplete-context warning for exhaustive questions
+
+     Add this to _build_rag_only() (and optionally the other RAG modes):
+
+     "  * If the question asks to list ALL matching companies but
+     INTERNAL_CONTEXT appears\n"
+     "    to be an incomplete subset, begin your answer with:\n"
+     "    \"Note: retrieved context may be incomplete.\"\n"
+     "    Then list every company present in INTERNAL_CONTEXT that matches.\n"
+
+     This prevents the LLM from silently giving a partial answer when retrieval
+     was incomplete.
+
+     B4. Keep num_predict at 800 for point questions, increase for list 
+     questions
+
+     For list questions with 30+ companies, 800 tokens can truncate the answer.
+     Increase to 1200 for
+     list queries and keep 800 for point queries.
+
+     ---
+     C. Best RAGAS Evaluation
+
+     C1. Add deterministic company-set metrics to evaluation.py
+
+     RAGAS LLM scores cannot reliably detect when 2 out of 3 expected companies
+     are returned — the
+     answer may still be fluent and "correct" by LLM standards. Deterministic F1
+      exposes this directly.
+
+     Approach: Use exact string matching against the 205 known company names
+     loaded from the KB.
+     Do not use regex on title-case runs — that mismatches partial names.
+
+     def _load_company_names() -> frozenset[str]:
+         """Load the canonical 205 company names from the KB Excel once."""
+         import pathlib
+         import pandas as pd
+         kb = pathlib.Path(__file__).parent.parent.parent / "kb" / "GNEM - Auto 
+     Landscape Lat Long Updated.xlsx"
+         df = pd.read_excel(kb, usecols=["company"])
+         return
+     frozenset(df["company"].dropna().str.strip().str.lower().tolist())
+
+     _COMPANY_NAMES: frozenset[str] | None = None
+
+     def _extract_companies(text: str) -> set[str]:
+         global _COMPANY_NAMES
+         if _COMPANY_NAMES is None:
+             _COMPANY_NAMES = _load_company_names()
+         text_lower = text.lower()
+         return {name for name in _COMPANY_NAMES if name in text_lower}
+
+     Add to the output of evaluate_rows() per row:
+     - gold_companies — company names found in golden_answer
+     - context_companies — company names found in retrieved_context
+     - answer_companies — company names found in answer
+     - context_company_recall — |gold ∩ context| / |gold| (0–1; 1.0 = full
+     retrieval)
+     - answer_company_recall — |gold ∩ answer| / |gold|
+     - answer_company_precision — |gold ∩ answer| / |answer|
+     - answer_company_f1 — harmonic mean of recall and precision
+     - count_exact_match — 1 if golden answer's standalone integer appears in
+     answer, else 0
+
+     Add a new aggregation sheet agg_company_set in build_aggregations(): mean
+     of
+     context_company_recall, answer_company_f1 grouped by model/mode.
+
+     C2. Keep RAGAS weights as-is
+
+     Current weights (faithfulness 0.25, relevancy 0.20, precision 0.20, recall
+     0.20, correctness 0.15)
+     are defensible. The AnswerSimilarity fix is already in place. Do not change
+      weights.
+
+     However, note: for this Excel-only benchmark, context_company_recall from
+     C1 is more diagnostic
+     than any single RAGAS metric. The answer_company_f1 is the main correctness
+      signal.
+
+     C3. Split evaluation report sheets
+
+     Add two sheets to the RAGAS output workbook:
+     1. per_row — existing RAGAS per-row scores (already present)
+     2. per_row_deterministic — new deterministic set metrics (C1)
+     3. agg_model_mode — existing aggregation (already present)
+     4. agg_company_set — new: mean context_company_recall and answer_company_f1
+      by model/mode
+
+     ---
+     Implementation Order
+
+     In this exact sequence to avoid breaking the pipeline:
+
+     1. Fix products_services bug in retrieval.py — one-line fix, zero risk,
+     immediate impact
+     2. Fix remaining format_context() field mapping — add city,
+     ev_battery_relevant,
+     facility_type, industry_group; remove total_employment fallback
+     3. Enable hybrid search in retrieval.py — add _search_hybrid(), fall back
+     to dense-only
+     if sparse vector absent
+     4. Add extract_filters() to retrieval.py — lightweight regex/keyword
+     extraction;
+     no filter if nothing matches
+     5. Fix exhaustive rerank cap — remove hard rerank_top_n cap for list
+     queries;
+     use score threshold instead
+     6. Fix generation context size — pass num_ctx=16384 for list queries in
+     generation.py
+     7. Fix generation token limit — increase num_predict for list queries
+     8. Add Excel-grounded guardrail to prompts.py — two sentences in modes 3
+     and 4
+     9. Add incomplete-context warning to prompts.py — one sentence in rag_only
+     10. Add deterministic set metrics to evaluation.py — new
+     _extract_companies() +
+     new columns in evaluate_rows() + agg_company_set in build_aggregations()
+     11. Smoke test: 2 questions × 2 models × 4 modes = 16 rows; verify
+     context_company_recall > 0
+
+     ---
+     What NOT to do
+
+     - Do not port kb_query_planner.py from new-Arch. It requires Neo4j +
+     PostgreSQL. A lightweight
+     extract_filters() with regex covers the same Excel-filter use cases without
+      new dependencies.
+     - Do not re-ingest with multi-view chunks yet. Fix retrieval recall first;
+     re-ingestion is an
+     irreversible operation and adds complexity before the simpler fixes are
+     validated.
+     - Do not change the RAGAS weights or the Kimi 2.6 judge. They are already
+     correct.
+     - Do not touch kb/Human validated 50 questions.xlsx. It is the benchmark
+     ground truth.
+
+     ---
+     Final Run Commands
+
+     # Command 1 — all 50 questions, both models, all 4 modes, generate + 
+     evaluate
+     python -m georgia_ev_intelligence.scripts.run_llm_comparison \
+       --run-id full_20260506 \
+       --models qwen2.5:14b gemma3:27b \
+       --modes rag_only no_rag rag_pretrained rag_pretrained_web
+
+     # Command 2 — specific question IDs only (replace numbers as needed)
+     python -m georgia_ev_intelligence.scripts.run_llm_comparison \
+       --run-id targeted_20260506 \
+       --models qwen2.5:14b gemma3:27b \
+       --modes rag_only no_rag rag_pretrained rag_pretrained_web \
+       --question-ids 5 7 10 22
+
+● Plan approved. Let me implement all changes now, starting with the files I
+  need to read.
+
+  Read 2 files (ctrl+o to expand)
+● I have everything I need. Now I'll implement all changes in order. Starting
+  with retrieval.py — the most impactful file.
+
+● Write(llm_comparison/retrieval.py)
+  ⎿  Added 244 lines, removed 47 lines
+       1 -"""Dense Qdrant retrieval + mandatory cross-encoder rerank.    
+       1 +"""Dense + hybrid Qdrant retrieval + mandatory cross-encoder re
+         +rank.                                                          
+       2  
+       3  Per the sreeja-arch spec:
+       4 -  * Retrieve dense-only from the existing Qdrant collection (sp
+         -arse/RRF                                                       
+       5 -    is deliberately bypassed for the comparison runs).         
+       6 -  * Rerank the top-K candidates with cross-encoder/ms-marco-Min
+         -iLM-L12-v2.                                                    
+       4 +  * Attempt hybrid (dense + sparse RRF) retrieval; fall back to
+         + dense-only                                                    
+       5 +    if the sparse vector is unavailable or the query fails.    
+       6 +  * Apply metadata pre-filters (tier, county, employment) befor
+         +e vector search                                                
+       7 +    when the question explicitly names structured constraints. 
+       8 +  * Rerank candidates with cross-encoder/ms-marco-MiniLM-L12-v2
+         +.                                                              
+       9    * Reranker load failure is fatal: no silent fallback to dense
+           ordering.
+       8 -  * The pipeline returns the top rerank_top_n hits for use in t
+         -he prompt.                                                     
+      10 +  * For exhaustive list/count questions, return all candidates 
+         +above a rerank                                                 
+      11 +    score threshold instead of a fixed top-N cap.              
+      12  
+      13  This module is self-contained: it talks to Qdrant via qdrant-cl
+          ient and
+      14  embeds queries via Ollama's /api/embed endpoint, without going 
+          through
+      12 -shared.config.Config.                                          
+      15 +shared.config.Config. The sparse vector builder is duplicated h
+         +ere from                                                       
+      16 +phase2_embedding/vector_store.py to avoid cross-package imports
+         +.                                                              
+      17  
+      18  Query classification:
+      15 -  Exhaustive list questions ("list all", "which companies", "ho
+         -w many") use                                                   
+      16 -  a higher rerank_top_n automatically so companies are not sile
+         -ntly dropped                                                   
+      17 -  from multi-company answers.                                  
+      19 +  classify_query() returns 'list' for exhaustive enumeration qu
+         +estions and                                                    
+      20 +  'point' for targeted fact questions. List queries bypass the 
+         +rerank_top_n                                                   
+      21 +  cap and use a score threshold instead.                       
+      22  """
+      23  from __future__ import annotations
+      24  
+     ...
+       28  from typing import Any
+       29  
+       30  import httpx
+       27 -from qdrant_client import QdrantClient                        
+       31 +from qdrant_client import QdrantClient, models                
+       32  
+       33  from llm_comparison.config import GenerationConfig
+       34  
+       35  logger = logging.getLogger("llm_comparison.retrieval")
+       36  
+       33 -# Keywords that signal the question expects an exhaustive/list
+          - answer.                                                      
+       37 +                                                              
+       38 +# ── Query type classifier ───────────────────────────────────
+          +─────────────────                                             
+       39 +                                                              
+       40  _LIST_PATTERNS = re.compile(
+       41      r"\b(list|all|every|each|how many|which companies|which su
+           ppliers|"
+       42      r"count|enumerate|name all|give all|show all)\b",
+       43      re.IGNORECASE,
+       44  )
+       45 +# Cross-encoder log-scale scores: -5.0 passes nearly all non-n
+          +oise candidates.                                              
+       46 +_LIST_RERANK_THRESHOLD = -5.0                                 
+       47  
+       48  
+       41 -# ── Query type classifier ───────────────────────────────────
+          -────────────────                                              
+       42 -                                                              
+       49  def classify_query(question: str) -> str:
+       50      """Return 'list' for exhaustive enumeration questions, 'po
+           int' otherwise."""
+       51      return "list" if _LIST_PATTERNS.search(question) else "poi
+           nt"
+       52  
+       53  
+       48 -# ── Reranker (mandatory) ────────────────────────────────────
+          -────────────────                                              
+       54 +# ── Sparse vector (BM25-style TF, IDF managed server-side by 
+          +Qdrant) ────────                                              
+       55 +# Duplicated from phase2_embedding/vector_store.py to keep llm
+          +_comparison                                                   
+       56 +# self-contained. VOCAB_SIZE must match what was used at inges
+          +tion time.                                                    
+       57  
+       58 +_STOPWORDS = frozenset({                                      
+       59 +    "the", "a", "an", "and", "or", "but", "in", "on", "at", "t
+          +o",                                                           
+       60 +    "for", "of", "with", "by", "from", "is", "are", "was", "we
+          +re",                                                          
+       61 +    "be", "been", "being", "have", "has", "had", "do", "does",
+          + "did",                                                       
+       62 +    "will", "would", "could", "should", "may", "might", "shall
+          +",                                                            
+       63 +    "this", "that", "these", "those", "it", "its", "as", "up",
+       64 +})                                                            
+       65 +_VOCAB_SIZE = 1_048_576  # 2^20 — matches vector_store.py     
+       66 +                                                              
+       67 +                                                              
+       68 +def _build_sparse_vector(text: str) -> models.SparseVector:   
+       69 +    tokens = [                                                
+       70 +        t for t in re.findall(r"[a-z0-9]+", text.lower())     
+       71 +        if t not in _STOPWORDS and len(t) >= 2                
+       72 +    ]                                                         
+       73 +    if not tokens:                                            
+       74 +        return models.SparseVector(indices=[0], values=[0.0]) 
+       75 +    tf: dict[str, int] = {}                                   
+       76 +    for t in tokens:                                          
+       77 +        tf[t] = tf.get(t, 0) + 1                              
+       78 +    seen: set[int] = set()                                    
+       79 +    indices: list[int] = []                                   
+       80 +    values: list[float] = []                                  
+       81 +    for token, count in tf.items():                           
+       82 +        idx = hash(token) % _VOCAB_SIZE                       
+       83 +        if idx < 0:                                           
+       84 +            idx += _VOCAB_SIZE                                
+       85 +        if idx not in seen:                                   
+       86 +            seen.add(idx)                                     
+       87 +            indices.append(idx)                               
+       88 +            values.append(float(count))                       
+       89 +    return models.SparseVector(indices=indices, values=values)
+       90 +                                                              
+       91 +                                                              
+       92 +# ── Metadata filter extraction ──────────────────────────────
+          +─────────────────                                             
+       93 +                                                              
+       94 +_TIER_PATTERNS: list[tuple[re.Pattern, str]] = [              
+       95 +    (re.compile(r"\btier\s*1\s*/\s*2\b", re.I), "Tier 1/2"),  
+       96 +    (re.compile(r"\btier\s*1\b", re.I), "Tier 1"),            
+       97 +    (re.compile(r"\btier\s*2\b", re.I), "Tier 2"),            
+       98 +    (re.compile(r"\boem\b", re.I), "OEM"),                    
+       99 +]                                                             
+      100 +                                                              
+      101 +_GEORGIA_COUNTIES: frozenset[str] = frozenset({               
+      102 +    "troup", "gwinnett", "muscogee", "chatham", "cobb", "fulto
+          +n",                                                           
+      103 +    "dekalb", "hall", "bibb", "whitfield", "bartow", "cherokee
+          +",                                                            
+      104 +    "forsyth", "henry", "clayton", "douglas", "paulding", "car
+          +roll",                                                        
+      105 +    "coweta", "fayette", "newton", "rockdale", "spalding", "ri
+          +chmond",                                                      
+      106 +    "columbia", "haralson", "polk", "walker", "catoosa", "gord
+          +on",                                                          
+      107 +    "floyd", "dade", "whitfield", "gordon", "murray", "gilmer"
+          +,                                                             
+      108 +})                                                            
+      109 +                                                              
+      110 +                                                              
+      111 +def extract_filters(question: str) -> dict[str, Any]:         
+      112 +    """Extract explicit structured constraints from a question
+          +.                                                             
+      113 +                                                              
+      114 +    Only applies a filter when the question text directly name
+          +s a value.                                                    
+      115 +    Returns an empty dict when uncertain — no filter is safer 
+          +than a wrong                                                  
+      116 +    one that silently drops valid rows.                       
+      117 +    """                                                       
+      118 +    q_lower = question.lower()                                
+      119 +    result: dict[str, Any] = {}                               
+      120 +                                                              
+      121 +    for pattern, canonical in _TIER_PATTERNS:                 
+      122 +        if pattern.search(question):                          
+      123 +            result["tier"] = canonical                        
+      124 +            break                                             
+      125 +                                                              
+      126 +    county_match = re.search(r"\b(\w+)\s+county\b", q_lower)  
+      127 +    if county_match and county_match.group(1) in _GEORGIA_COUN
+          +TIES:                                                         
+      128 +        result["location_county"] = county_match.group(1).titl
+          +e()                                                           
+      129 +                                                              
+      130 +    emp_above = re.search(                                    
+      131 +        r"\b(?:over|more than|greater than|above)\s+(\d[\d,]*)
+          +"                                                             
+      132 +        r"\s*(?:employees?|workers?|jobs?)\b",                
+      133 +        q_lower,                                              
+      134 +    )                                                         
+      135 +    emp_below = re.search(                                    
+      136 +        r"\b(?:under|fewer than|less than|below)\s+(\d[\d,]*)"
+      137 +        r"\s*(?:employees?|workers?|jobs?)\b",                
+      138 +        q_lower,                                              
+      139 +    )                                                         
+      140 +    if emp_above:                                             
+      141 +        result["min_employment"] = float(emp_above.group(1).re
+          +place(",", ""))                                               
+      142 +    if emp_below:                                             
+      143 +        result["max_employment"] = float(emp_below.group(1).re
+          +place(",", ""))                                               
+      144 +                                                              
+      145 +    return result                                             
+      146 +                                                              
+      147 +                                                              
+      148 +def _make_qdrant_filter(filters: dict[str, Any]) -> models.Fil
+          +ter | None:                                                   
+      149 +    """Convert extract_filters() output into a Qdrant Filter."
+          +""                                                            
+      150 +    if not filters:                                           
+      151 +        return None                                           
+      152 +    must: list[Any] = []                                      
+      153 +    for field in ("tier", "location_county", "location_city"):
+      154 +        if field in filters:                                  
+      155 +            must.append(                                      
+      156 +                models.FieldCondition(key=field, match=models.
+          +MatchValue(value=filters[field]))                             
+      157 +            )                                                 
+      158 +    min_emp = filters.get("min_employment")                   
+      159 +    max_emp = filters.get("max_employment")                   
+      160 +    if min_emp is not None or max_emp is not None:            
+      161 +        must.append(                                          
+      162 +            models.FieldCondition(                            
+      163 +                key="employment",                             
+      164 +                range=models.Range(                           
+      165 +                    gte=float(min_emp) if min_emp is not None 
+          +else None,                                                    
+      166 +                    lte=float(max_emp) if max_emp is not None 
+          +else None,                                                    
+      167 +                ),                                            
+      168 +            )                                                 
+      169 +        )                                                     
+      170 +    return models.Filter(must=must) if must else None         
+      171 +                                                              
+      172 +                                                              
+      173 +# ── Reranker (mandatory) ────────────────────────────────────
+          +─────────────────                                             
+      174 +                                                              
+      175  @lru_cache(maxsize=4)
+      176  def _load_cross_encoder(model_name: str):
+      177      """Force-load the cross-encoder. Hard fail on any error.""
+           "
+     ...
+      182              "Reranker is mandatory; sentence-transformers is n
+           ot installed. "
+      183              "Run: pip install sentence-transformers"
+      184          ) from exc
+       60 -                                                              
+      185      try:
+      186          return CrossEncoder(model_name)
+      187      except Exception as exc:
+     ...
+      195      _load_cross_encoder(model_name)
+      196  
+      197  
+       74 -# ── Qdrant client (singleton per (url, key)) ────────────────
+          -────────────────                                              
+      198 +# ── Qdrant client (singleton per (url, key)) ────────────────
+          +─────────────────                                             
+      199  
+      200  @lru_cache(maxsize=4)
+      201  def _get_qdrant_client(url: str, api_key: str) -> QdrantClient
+           :
+      202      return QdrantClient(url=url, api_key=api_key, timeout=60)
+      203  
+      204  
+       81 -# ── Query embedding via Ollama ──────────────────────────────
+          -────────────────                                              
+      205 +# ── Query embedding via Ollama ──────────────────────────────
+          +──────────────────                                            
+      206  
+      207  def _embed_query(question: str, ollama_base_url: str, embed_mo
+           del: str) -> list[float]:
+      208      url = f"{ollama_base_url}/api/embed"
+     ...
+      219      return embeddings[0]
+      220  
+      221  
+       98 -# ── Dense Qdrant search ─────────────────────────────────────
+          -────────────────                                              
+      222 +# ── Qdrant search (hybrid with dense-only fallback) ─────────
+          +──────────────────                                            
+      223  
+      100 -def _search_dense(                                            
+      224 +def _search(                                                  
+      225      client: QdrantClient,
+      226      collection: str,
+      227      dense_name: str,
+      228 +    sparse_name: str,                                         
+      229      query_vector: list[float],
+      230 +    query_text: str,                                          
+      231      top_k: int,
+      106 -) -> list[dict[str, Any]]:                                    
+      107 -    result = client.query_points(                             
+      108 -        collection_name=collection,                           
+      109 -        query=query_vector,                                   
+      110 -        using=dense_name,                                     
+      111 -        limit=top_k,                                          
+      112 -        with_payload=True,                                    
+      113 -    )                                                         
+      232 +    qdrant_filter: models.Filter | None,                      
+      233 +) -> tuple[list[dict[str, Any]], str]:                        
+      234 +    """Hybrid RRF search (dense + sparse) with graceful dense-
+          +only fallback.                                                
+      235 +                                                              
+      236 +    Returns (hits, retrieval_source) where source is 'hybrid' 
+          +or 'dense'.                                                   
+      237 +    Each hit carries dense_rank, dense_score, and retrieval_so
+          +urce for auditing.                                            
+      238 +    """                                                       
+      239 +    sparse_vec = _build_sparse_vector(query_text)             
+      240 +    retrieval_source = "hybrid"                               
+      241 +    try:                                                      
+      242 +        result = client.query_points(                         
+      243 +            collection_name=collection,                       
+      244 +            prefetch=[                                        
+      245 +                models.Prefetch(                              
+      246 +                    query=query_vector,                       
+      247 +                    using=dense_name,                         
+      248 +                    limit=top_k,                              
+      249 +                    filter=qdrant_filter,                     
+      250 +                ),                                            
+      251 +                models.Prefetch(                              
+      252 +                    query=sparse_vec,                         
+      253 +                    using=sparse_name,                        
+      254 +                    limit=top_k,                              
+      255 +                    filter=qdrant_filter,                     
+      256 +                ),                                            
+      257 +            ],                                                
+      258 +            query=models.FusionQuery(fusion=models.Fusion.RRF)
+          +,                                                             
+      259 +            limit=top_k,                                      
+      260 +            with_payload=True,                                
+      261 +        )                                                     
+      262 +        logger.info("Hybrid search returned %d hits", len(resu
+          +lt.points))                                                   
+      263 +    except Exception as exc:                                  
+      264 +        logger.warning("Hybrid search failed (%s) — falling ba
+          +ck to dense-only", exc)                                       
+      265 +        retrieval_source = "dense"                            
+      266 +        kw: dict[str, Any] = {}                               
+      267 +        if qdrant_filter is not None:                         
+      268 +            kw["query_filter"] = qdrant_filter                
+      269 +        result = client.query_points(                         
+      270 +            collection_name=collection,                       
+      271 +            query=query_vector,                               
+      272 +            using=dense_name,                                 
+      273 +            limit=top_k,                                      
+      274 +            with_payload=True,                                
+      275 +            **kw,                                             
+      276 +        )                                                     
+      277 +        logger.info("Dense-only fallback returned %d hits", le
+          +n(result.points))                                             
+      278 +                                                              
+      279      hits: list[dict[str, Any]] = []
+      115 -    for point in result.points:                               
+      280 +    for rank, point in enumerate(result.points):              
+      281          payload = point.payload or {}
+      282          text = payload.get("parent_text") or payload.get("text
+           ") or ""
+      283          hits.append(
+      284              {
+      120 -                "score": float(point.score) if point.score is 
+          -not None else 0.0,                                            
+      285 +                "dense_rank": rank,                           
+      286 +                "dense_score": float(point.score) if point.sco
+          +re is not None else 0.0,                                      
+      287                  "text": text,
+      288                  "company_name": payload.get("company_name", ""
+           ),
+      289                  "source_url": payload.get("source_url", ""),
+      290                  "chunk_id": payload.get("chunk_id", str(point.
+           id)),
+      291                  "metadata": payload,
+      292 +                "retrieval_source": retrieval_source,         
+      293              }
+      294          )
+      128 -    return hits                                               
+      295 +    return hits, retrieval_source                             
+      296  
+      297  
+      131 -# ── Rerank ──────────────────────────────────────────────────
+          -────────────────                                              
+      298 +# ── Rerank ──────────────────────────────────────────────────
+          +──────────────────                                            
+      299  
+      133 -def _rerank(question: str, hits: list[dict[str, Any]], reranke
+          -r_model: str) -> list[dict[str, Any]]:                        
+      300 +def _rerank(                                                  
+      301 +    question: str, hits: list[dict[str, Any]], reranker_model:
+          + str                                                          
+      302 +) -> list[dict[str, Any]]:                                    
+      303      if not hits:
+      304          return hits
+      305      encoder = _load_cross_encoder(reranker_model)
+     ...
+      311      return hits
+      312  
+      313  
+      145 -# ── Public entrypoint ───────────────────────────────────────
+          -────────────────                                              
+      314 +# ── Public entrypoint ───────────────────────────────────────
+          +──────────────────                                            
+      315  
+      316  def retrieve_and_rerank(
+      317      question: str,
+     ...
+      319      top_k: int = 120,
+      320      rerank_top_n: int = 40,
+      321  ) -> list[dict[str, Any]]:
+      153 -    """Embed → dense search → cross-encoder rerank → top-N.   
+      322 +    """Embed → hybrid/dense search with metadata pre-filter → 
+          +cross-encoder rerank.                                         
+      323  
+      155 -    For exhaustive list questions (all/every/how many…), reran
+          -k_top_n is                                                    
+      156 -    automatically increased to 60 so multi-company answers are
+          - not truncated.                                               
+      324 +    For exhaustive list/count questions the fixed rerank_top_n
+          + cap is bypassed:                                             
+      325 +    all candidates above _LIST_RERANK_THRESHOLD are returned s
+          +o multi-company                                               
+      326 +    answers are not silently truncated.                       
+      327      """
+      328      query_type = classify_query(question)
+      329      if query_type == "list":
+      160 -        rerank_top_n = max(rerank_top_n, 60)                  
+      161 -        logger.info("List query detected — using rerank_top_n=
+          -%d", rerank_top_n)                                            
+      330 +        logger.info("List query detected — exhaustive mode act
+          +ive")                                                         
+      331  
+      332 +    filters = extract_filters(question)                       
+      333 +    if filters:                                               
+      334 +        logger.info("Metadata filters extracted: %s", filters)
+      335 +    qdrant_filter = _make_qdrant_filter(filters)              
+      336 +                                                              
+      337      client = _get_qdrant_client(cfg.qdrant_url, cfg.qdrant_api
+           _key)
+      338      query_vector = _embed_query(question, cfg.ollama_base_url,
+            cfg.embedding_model)
+      165 -    hits = _search_dense(                                     
+      339 +                                                              
+      340 +    hits, _source = _search(                                  
+      341          client=client,
+      342          collection=cfg.qdrant_collection,
+      343          dense_name=cfg.qdrant_dense_name,
+      344 +        sparse_name=cfg.qdrant_sparse_name,                   
+      345          query_vector=query_vector,
+      346 +        query_text=question,                                  
+      347          top_k=top_k,
+      348 +        qdrant_filter=qdrant_filter,                          
+      349      )
+      350 +                                                              
+      351      reranked = _rerank(question, hits, cfg.reranker_model)
+      352 +                                                              
+      353 +    if query_type == "list":                                  
+      354 +        result = [h for h in reranked if h.get("rerank_score",
+          + 0.0) > _LIST_RERANK_THRESHOLD]                               
+      355 +        logger.info(                                          
+      356 +            "Exhaustive mode: returning %d/%d hits above reran
+          +k threshold %.1f",                                            
+      357 +            len(result), len(reranked), _LIST_RERANK_THRESHOLD
+          +,                                                             
+      358 +        )                                                     
+      359 +        return result                                         
+      360 +                                                              
+      361      return reranked[:rerank_top_n]
+      362  
+      363  
+      364  def format_context(hits: list[dict[str, Any]]) -> str:
+      365      """Render reranked hits as a structured field-per-line for
+           mat.
+      366  
+      179 -    Structured layout lets the LLM selectively answer only the
+          - requested                                                    
+      180 -    field without dumping all metadata into the answer.       
+      367 +    Each block exposes individual Excel fields so the LLM can 
+          +answer only                                                   
+      368 +    the specific attribute the question asks for without dumpi
+          +ng all metadata.                                              
+      369      """
+      370      if not hits:
+      371          return ""
+     ...
+      375          company = hit.get("company_name") or meta.get("company
+           _name") or ""
+      376          header = f"[{i}] {company}" if company else f"[{i}]"
+      377  
+      190 -        # Extract structured fields from metadata when availab
+          -le.                                                           
+      378          tier = meta.get("tier", "")
+      379          role = meta.get("ev_supply_chain_role", "")
+      380 +        city = meta.get("location_city", "")                  
+      381          county = meta.get("location_county", "")
+      194 -        employment = meta.get("employment", "") or meta.get("t
+          -otal_employment", "")                                         
+      382 +        employment = meta.get("employment", "")               
+      383          oems = meta.get("primary_oems", "")
+      196 -        products = meta.get("products", "")                   
+      384 +        products = meta.get("products_services", "")          
+      385 +        ev_relevant = meta.get("ev_battery_relevant", "")     
+      386 +        industry = meta.get("industry_group", "")             
+      387 +        facility = meta.get("facility_type", "")              
+      388          source_url = hit.get("source_url", "")
+      389  
+      390          lines: list[str] = [header]
+     ...
+      392              lines.append(f"  Tier: {tier}")
+      393          if role:
+      394              lines.append(f"  Role: {role}")
+      204 -        if county:                                            
+      205 -            lines.append(f"  County: {county}")               
+      395 +        if city or county:                                    
+      396 +            location = ", ".join(filter(None, [city, county, "
+          +Georgia"]))                                                   
+      397 +            lines.append(f"  Location: {location}")           
+      398          if employment:
+      399              lines.append(f"  Employment: {employment}")
+      400          if oems:
+      401              lines.append(f"  OEMs: {oems}")
+      402          if products:
+      403              lines.append(f"  Products: {products}")
+      404 +        if ev_relevant:                                       
+      405 +            lines.append(f"  EV Relevant: {ev_relevant}")     
+      406 +        if industry:                                          
+      407 +            lines.append(f"  Industry: {industry}")           
+      408 +        if facility:                                          
+      409 +            lines.append(f"  Facility: {facility}")           
+      410          if source_url:
+      411              lines.append(f"  Source: {source_url}")
+      412  
+      215 -        # Always include raw text as the authoritative content
+          - block.                                                       
+      413          raw_text = hit.get("text", "").strip()
+      414          if raw_text:
+      415              lines.append(raw_text)
+
+● Now update generation.py to use adaptive num_ctx and num_predict for list
+  queries.
+
+● Update(llm_comparison/generation.py)
+  ⎿  Added 1 line, removed 1 line
+      19  
+      20  from llm_comparison.config import GenerationConfig
+      21  from llm_comparison.prompts import build_prompt
+      22 -from llm_comparison.retrieval import format_context, retrieve_a
+         -nd_rerank                                                      
+      22 +from llm_comparison.retrieval import classify_query, format_con
+         +text, retrieve_and_rerank                                      
+      23  
+      24  logger = logging.getLogger("llm_comparison.generation")
+      25  
+
+● Update(llm_comparison/generation.py)
+  ⎿  Added 10 lines, removed 3 lines
+      26  
+      27  # ── Ollama generation ────────────────────────────────────────
+          ───────────────
+      28  
+      29 -def _call_ollama(model: str, prompt: str, base_url: str, timeou
+         -t: float = 600.0) -> str:                                      
+      29 +def _call_ollama(                                              
+      30 +    model: str,                                                
+      31 +    prompt: str,                                               
+      32 +    base_url: str,                                             
+      33 +    timeout: float = 600.0,                                    
+      34 +    num_ctx: int = 8192,                                       
+      35 +    num_predict: int = 800,                                    
+      36 +) -> str:                                                      
+      37      response = httpx.post(
+      38          f"{base_url}/api/generate",
+      39          json={
+     ...
+      42              "stream": False,
+      43              "options": {
+      44                  "temperature": 0.0,
+      38 -                "num_predict": 800,                            
+      39 -                "num_ctx": 8192,                               
+      45 +                "num_predict": num_predict,                    
+      46 +                "num_ctx": num_ctx,                            
+      47              },
+      48          },
+      49          timeout=timeout,
+
+● Update(llm_comparison/generation.py)
+  ⎿  Added 13 lines, removed 2 lines
+      110      out = _empty_result()
+      111  
+      112      try:
+      113 +        query_type = classify_query(question)                 
+      114 +        # List questions need a larger context window and more
+          + output tokens.                                               
+      115 +        num_ctx = 16384 if query_type == "list" else 8192     
+      116 +        num_predict = 1200 if query_type == "list" else 800   
+      117 +                                                              
+      118          if mode == "no_rag":
+      119              internal_context = ""
+      120              web_context = ""
+     ...
+      130                  rerank_top_n=rerank_top_n,
+      131              )
+      132              retrieved_count = len(hits)
+      128 -            actual_rerank_top_n = min(rerank_top_n, retrieved_
+          -count)                                                        
+      133 +            actual_rerank_top_n = retrieved_count             
+      134              internal_context = format_context(hits)
+      135              if mode == "rag_pretrained_web":
+      136                  web_context, web_sources = _run_tavily(questio
+           n, cfg.tavily_api_key)
+     ...
+      149          )
+      150  
+      151          start = time.monotonic()
+      147 -        answer = _call_ollama(model=model, prompt=prompt, base
+          -_url=cfg.ollama_base_url)                                     
+      152 +        answer = _call_ollama(                                
+      153 +            model=model,                                      
+      154 +            prompt=prompt,                                    
+      155 +            base_url=cfg.ollama_base_url,                     
+      156 +            num_ctx=num_ctx,                                  
+      157 +            num_predict=num_predict,                          
+      158 +        )                                                     
+      159          elapsed = time.monotonic() - start
+      160  
+      161          out.update(
+
+● Now update prompts.py — add the Excel-grounded guardrail to modes 3 and 4, and
+   the incomplete-context warning to rag_only.
+
+● Update(llm_comparison/prompts.py)
+  ⎿  Added 17 lines
+      28      "  * Copy company names exactly as they appear in INTERNAL_
+          CONTEXT — character for character.\n"
+      29  )
+      30  
+      31 +# Excel-grounded guardrail injected into modes 3 and 4 only.   
+      32 +# Prevents pretrained/web facts from overwriting or diluting Ex
+         +cel-specific values.                                           
+      33 +_EXCEL_GUARDRAIL = (                                           
+      34 +    "  * INTERNAL_CONTEXT is the authoritative source for compa
+         +ny names, counts,\n"                                           
+      35 +    "    roles, tiers, locations, employment, and products. Use
+         + pretrained or web\n"                                          
+      36 +    "    facts ONLY for clearly labelled background that does n
+         +ot change the\n"                                               
+      37 +    "    Excel-grounded answer.\n"                             
+      38 +)                                                              
+      39  
+      40 +# Incomplete-context warning injected into rag_only for exhaust
+         +ive questions.                                                 
+      41 +_INCOMPLETE_CONTEXT = (                                        
+      42 +    "  * If the question asks to list ALL matching companies bu
+         +t INTERNAL_CONTEXT\n"                                          
+      43 +    "    appears to be an incomplete subset, begin your answer 
+         +with:\n"                                                       
+      44 +    "    \"Note: retrieved context may be incomplete.\"\n"     
+      45 +    "    Then list every company present in INTERNAL_CONTEXT th
+         +at matches.\n"                                                 
+      46 +)                                                              
+      47 +                                                               
+      48 +                                                               
+      49  def _system(mode: str, allowed: list[str], forbidden: list[str]
+          , tagging: list[str]) -> str:
+      50      allowed_block = "\n".join(f"  * {item}" for item in allowed
+          )
+      51      forbidden_block = "\n".join(f"  * {item}" for item in forbi
+          dden) if forbidden else "  * (none)"
+
+● Now inject _INCOMPLETE_CONTEXT into _build_rag_only and _EXCEL_GUARDRAIL into
+  modes 3 and 4.
+
+● Update(llm_comparison/prompts.py)
+  ⎿  Added 1 line
+      78          "knowledge. Do not use any web data. If INTERNAL_CONTEX
+          T does not contain enough\n"
+      79          "information to answer the question, your entire answer
+           must be exactly:\n"
+      80          f"\"{INSUFFICIENT_CONTEXT_SENTENCE}\"\n\n"
+      81 +        f"{_INCOMPLETE_CONTEXT}\n"                             
+      82          f"{_FIELD_FOCUS}"
+      83      )
+      84      user = (
+
+● Update(llm_comparison/prompts.py)
+  ⎿  Added 2 lines, removed 1 line
+      121          "  * Actively add complementary facts from your pretra
+           ined knowledge that INTERNAL_CONTEXT does NOT cover.\n"
+      122          "  * Tag every pretrained-derived statement inline wit
+           h [General knowledge].\n"
+      123          "  * If you cannot contribute any pretrained facts bey
+           ond INTERNAL_CONTEXT, append exactly this sentence:\n"
+      124 -        "    \"No additional pretrained facts contributed.\"\n
+          -\n"                                                           
+      124 +        "    \"No additional pretrained facts contributed.\"\n
+          +"                                                             
+      125 +        f"{_EXCEL_GUARDRAIL}\n"                               
+      126          f"{_FIELD_FOCUS}"
+      127      )
+      128      user = (
+
+● Update(llm_comparison/prompts.py)
+  ⎿  Added 2 lines, removed 1 line
+      152          "  INTERNAL_CONTEXT > WEB_CONTEXT > pretrained knowled
+           ge.\n"
+      153          "  * Use INTERNAL_CONTEXT as the primary authority.\n"
+      154          "  * Use WEB_CONTEXT to add recent or missing facts; t
+           ag them [Web].\n"
+      155 -        "  * Use pretrained knowledge for complementary backgr
+          -ound; tag those [General knowledge].\n\n"                     
+      155 +        "  * Use pretrained knowledge for complementary backgr
+          +ound; tag those [General knowledge].\n"                       
+      156 +        f"{_EXCEL_GUARDRAIL}\n"                               
+      157          f"{_FIELD_FOCUS}"
+      158      )
+      159      user = (
+
+● Now update evaluation.py — add deterministic company-set metrics and a new
+  aggregation sheet.
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  Added 12 lines
+      13    context_precision   0.20
+      14    context_recall      0.20
+      15    answer_correctness  0.15
+      16 +                                                               
+      17 +Deterministic set metrics (computed without LLM):              
+      18 +  gold_companies           — company names found in golden_answ
+         +er                                                             
+      19 +  context_companies        — company names found in retrieved_c
+         +ontext                                                         
+      20 +  answer_companies         — company names found in answer     
+      21 +  context_company_recall   — |gold ∩ context| / |gold|         
+      22 +  answer_company_recall    — |gold ∩ answer| / |gold|          
+      23 +  answer_company_precision — |gold ∩ answer| / |answer|        
+      24 +  answer_company_f1        — harmonic mean of recall and precis
+         +ion                                                            
+      25 +  count_exact_match        — 1 if golden count integer appears 
+         +in answer                                                      
+      26  """
+      27  from __future__ import annotations
+      28  
+      29  import logging
+      30 +import pathlib                                                 
+      31 +import re                                                      
+      32  import time
+      33  from typing import Any
+      34  
+
+● Now add the deterministic set metric functions after the imports section,
+  before _split_contexts.
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  Added 87 lines
+       38  
+       39  logger = logging.getLogger("llm_comparison.evaluation")
+       40  
+       41 +# ── Deterministic company-set metrics ───────────────────────
+          +─────────────────                                             
+       42 +                                                              
+       43 +_KB_PATH = (                                                  
+       44 +    pathlib.Path(__file__).resolve().parent.parent.parent     
+       45 +    / "kb"                                                    
+       46 +    / "GNEM - Auto Landscape Lat Long Updated.xlsx"           
+       47 +)                                                             
+       48 +_COMPANY_NAMES: frozenset[str] | None = None                  
+       49 +                                                              
+       50 +                                                              
+       51 +def _load_company_names() -> frozenset[str]:                  
+       52 +    """Load the 205 canonical company names from the GNEM KB E
+          +xcel (once)."""                                               
+       53 +    global _COMPANY_NAMES                                     
+       54 +    if _COMPANY_NAMES is not None:                            
+       55 +        return _COMPANY_NAMES                                 
+       56 +    try:                                                      
+       57 +        df = pd.read_excel(_KB_PATH, usecols=["company"])     
+       58 +        names = frozenset(                                    
+       59 +            name.strip().lower()                              
+       60 +            for name in df["company"].dropna().tolist()       
+       61 +            if str(name).strip()                              
+       62 +        )                                                     
+       63 +        _COMPANY_NAMES = names                                
+       64 +        logger.info("Loaded %d company names from KB for deter
+          +ministic metrics", len(names))                                
+       65 +    except Exception as exc:                                  
+       66 +        logger.warning("Could not load company names from KB (
+          +%s) — set metrics will be empty", exc)                        
+       67 +        _COMPANY_NAMES = frozenset()                          
+       68 +    return _COMPANY_NAMES                                     
+       69 +                                                              
+       70 +                                                              
+       71 +def _extract_companies(text: str) -> set[str]:                
+       72 +    """Return the subset of known company names that appear in
+          + text."""                                                     
+       73 +    names = _load_company_names()                             
+       74 +    if not names or not text:                                 
+       75 +        return set()                                          
+       76 +    text_lower = text.lower()                                 
+       77 +    return {name for name in names if name in text_lower}     
+       78 +                                                              
+       79 +                                                              
+       80 +def _count_exact_match(golden: str, answer: str) -> int:      
+       81 +    """Return 1 if a standalone integer from golden appears in
+          + answer, else 0."""                                           
+       82 +    if not golden or not answer:                              
+       83 +        return 0                                              
+       84 +    nums = re.findall(r"\b(\d+)\b", golden)                   
+       85 +    if not nums:                                              
+       86 +        return 0                                              
+       87 +    answer_lower = answer.lower()                             
+       88 +    for n in nums:                                            
+       89 +        if re.search(rf"\b{re.escape(n)}\b", answer_lower):   
+       90 +            return 1                                          
+       91 +    return 0                                                  
+       92 +                                                              
+       93 +                                                              
+       94 +def _company_set_metrics(                                     
+       95 +    golden: str,                                              
+       96 +    context: str,                                             
+       97 +    answer: str,                                              
+       98 +) -> dict[str, Any]:                                          
+       99 +    gold = _extract_companies(golden)                         
+      100 +    ctx = _extract_companies(context)                         
+      101 +    ans = _extract_companies(answer)                          
+      102 +                                                              
+      103 +    def recall(pred: set, ref: set) -> float:                 
+      104 +        return round(len(pred & ref) / len(ref), 4) if ref els
+          +e 0.0                                                         
+      105 +                                                              
+      106 +    def precision(pred: set, ref: set) -> float:              
+      107 +        return round(len(pred & ref) / len(pred), 4) if pred e
+          +lse 0.0                                                       
+      108 +                                                              
+      109 +    def f1(p: float, r: float) -> float:                      
+      110 +        return round(2 * p * r / (p + r), 4) if (p + r) > 0 el
+          +se 0.0                                                        
+      111 +                                                              
+      112 +    ctx_recall = recall(ctx, gold)                            
+      113 +    ans_recall = recall(ans, gold)                            
+      114 +    ans_prec = precision(ans, gold)                           
+      115 +    ans_f1 = f1(ans_prec, ans_recall)                         
+      116 +                                                              
+      117 +    return {                                                  
+      118 +        "gold_companies": ", ".join(sorted(gold)),            
+      119 +        "context_companies": ", ".join(sorted(ctx)),          
+      120 +        "answer_companies": ", ".join(sorted(ans)),           
+      121 +        "context_company_recall": ctx_recall,                 
+      122 +        "answer_company_recall": ans_recall,                  
+      123 +        "answer_company_precision": ans_prec,                 
+      124 +        "answer_company_f1": ans_f1,                          
+      125 +    }                                                         
+      126 +                                                              
+      127 +                                                              
+      128  WEIGHTS: dict[str, float] = {
+      129      "faithfulness": 0.25,
+      130      "answer_relevancy": 0.20,
+
+● Now inject deterministic metrics into evaluate_rows() output and update
+  _blank_eval_row. First let me see the current output dict in evaluate_rows.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  Added 5 lines
+      315  
+      316          final = _final_score(scores, skipped)
+      317  
+      318 +        raw_context = _safe_str(row.get("retrieved_context")) 
+      319 +        det = _company_set_metrics(reference, raw_context, ans
+          +wer)                                                          
+      320 +        det["count_exact_match"] = _count_exact_match(referenc
+          +e, answer)                                                    
+      321 +                                                              
+      322          out_rows.append(
+      323              {
+      324                  "run_id": row.get("run_id", ""),
+     ...
+      338                  "judge_model": cfg.judge_model,
+      339                  "eval_elapsed_s": round(eval_elapsed, 3),
+      340                  "notes": "; ".join(notes_parts),
+      341 +                **det,                                        
+      342              }
+      343          )
+      344  
+
+● Now update _blank_eval_row to include the new deterministic columns, and add
+  agg_company_set to build_aggregations.
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  Added 8 lines
+      369          "judge_model": "",
+      370          "eval_elapsed_s": 0.0,
+      371          "notes": "",
+      372 +        "gold_companies": "",                                 
+      373 +        "context_companies": "",                              
+      374 +        "answer_companies": "",                               
+      375 +        "context_company_recall": 0.0,                        
+      376 +        "answer_company_recall": 0.0,                         
+      377 +        "answer_company_precision": 0.0,                      
+      378 +        "answer_company_f1": 0.0,                             
+      379 +        "count_exact_match": 0,                               
+      380      }
+      381  
+      382  
+
+● Now add agg_company_set sheet to build_aggregations.
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  Added 19 lines, removed 1 line
+      381  
+      382  
+      383  def build_aggregations(per_row: pd.DataFrame) -> dict[str, pd.
+           DataFrame]:
+      384 -    """Compute the four aggregation sheets demanded by the spe
+          -c."""                                                         
+      384 +    """Compute aggregation sheets for RAGAS metrics and determ
+          +inistic set metrics."""                                       
+      385      metric_cols = ALL_METRICS + ["final_score"]
+      386 +    det_cols = [                                              
+      387 +        "context_company_recall", "answer_company_recall",    
+      388 +        "answer_company_precision", "answer_company_f1", "coun
+          +t_exact_match",                                               
+      389 +    ]                                                         
+      390  
+      391      if per_row.empty:
+      392          empty = pd.DataFrame(columns=["model", "mode", *metric
+           _cols])
+     ...
+      394              "agg_model_mode": empty,
+      395              "agg_model_mode_metric": pd.DataFrame(columns=["mo
+           del", "mode", "metric", "mean", "std", "n"]),
+      396              "agg_category_mode": pd.DataFrame(columns=["catego
+           ry", "mode", *metric_cols]),
+      397 +            "agg_company_set": pd.DataFrame(columns=["model", 
+          +"mode", *det_cols]),                                          
+      398          }
+      399  
+      400      agg_model_mode = (
+     ...
+      426          .reset_index()
+      427      )
+      428  
+      429 +    # Deterministic set metrics aggregated by model + mode.   
+      430 +    available_det = [c for c in det_cols if c in per_row.colum
+          +ns]                                                           
+      431 +    if available_det:                                         
+      432 +        agg_company_set = (                                   
+      433 +            per_row.groupby(["model", "mode"])[available_det] 
+      434 +            .mean()                                           
+      435 +            .round(4)                                         
+      436 +            .reset_index()                                    
+      437 +        )                                                     
+      438 +    else:                                                     
+      439 +        agg_company_set = pd.DataFrame(columns=["model", "mode
+          +", *det_cols])                                                
+      440 +                                                              
+      441      return {
+      442          "agg_model_mode": agg_model_mode,
+      443          "agg_model_mode_metric": agg_model_mode_metric,
+      444          "agg_category_mode": agg_category_mode,
+      445 +        "agg_company_set": agg_company_set,                   
+      446      }
+
+● Now I need to check that run_llm_evaluation.py writes the new agg_company_set
+  sheet. Let me read it.
+
+  Read 1 file (ctrl+o to expand)
+● The **aggregations spread automatically includes the new sheet — no change
+  needed. Now run the import check.
+
+● Bash(cd
+      /home/sm11926/Downloads/Georgia_ev_intelligence-1/georgia_ev_intelligence
+      && python -c "
+      from llm_comparison.retrieval import (…)
+  ⎿  Could not load company names from KB (Usecols do not match columns, co
+     lumns expected but not found: ['company'] (sheet: 0)) — set metrics wi
+     ll be empty
+     … +16 lines (ctrl+o to expand)
+
+● Everything works except the KB column name — let me find the actual column
+  name in that Excel.
+
+● Bash(cd /home/sm11926/Downloads/Georgia_ev_intelligence-1 && python -c "
+      import pandas as pd…)
+  ⎿  Columns: ['Company', 'Category', 'Industry Group', 'Updated Location',
+      'Address', 'Latitude', 'Longitude', 'Primary Facility Type', 'EV Supp
+     ly Chain Role', 'Primary OEMs', 'Supplier or Affiliation Type', 'Emplo
+     … +2 lines (ctrl+o to expand)
+
+● The column is Company (capital C). Fix the KB loader.
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  Added 2 lines, removed 2 lines
+      54      if _COMPANY_NAMES is not None:
+      55          return _COMPANY_NAMES
+      56      try:
+      57 -        df = pd.read_excel(_KB_PATH, usecols=["company"])      
+      57 +        df = pd.read_excel(_KB_PATH, usecols=["Company"])      
+      58          names = frozenset(
+      59              name.strip().lower()
+      60 -            for name in df["company"].dropna().tolist()        
+      60 +            for name in df["Company"].dropna().tolist()        
+      61              if str(name).strip()
+      62          )
+      63          _COMPANY_NAMES = names
+
+● Bash(cd
+      /home/sm11926/Downloads/Georgia_ev_intelligence-1/georgia_ev_intelligence
+      && python -c "
+      from llm_comparison.evaluation import _load_company_names, _extract_…)
+  ⎿  Loaded 193 company names
+     Sample: ['acm georgia llc', 'adient', 'advics manufacturing georgia ll
+     c', 'ajin georgia', 'albaform inc.']
+     … +4 lines (ctrl+o to expand)
+
+● Bash(python -c "
+      from llm_comparison.evaluation import _load_company_names,
+      _extract_companies…)
+  ⎿  Traceback (most recent call last):
+       File "<string>", line 16, in <module>
+         import sorted as s
+     … +3 lines (ctrl+o to expand)
+
+● The KB has "kia georgia inc." but answers may say "Kia Georgia". I need to
+  also match normalized names (stripped of corporate suffixes).
+
+● Update(llm_comparison/evaluation.py)
+  ⎿  Added 30 lines, removed 8 lines
+      47  )
+      48  _COMPANY_NAMES: frozenset[str] | None = None
+      49  
+      50 +# Strips common corporate suffixes so "Kia Georgia Inc." also m
+         +atches "Kia Georgia".                                          
+      51 +_CORP_SUFFIX = re.compile(                                     
+      52 +    r",?\s+(?:inc|llc|ltd|corp|co\.|company|group|corporation|m
+         +anufacturing|"                                                 
+      53 +    r"industries|international|solutions|technologies?|systems?
+         +|services?|"                                                   
+      54 +    r"associates?|partners?|ventures?|holdings?)\.?$",         
+      55 +    re.IGNORECASE,                                             
+      56 +)                                                              
+      57  
+      58 +                                                               
+      59 +def _normalize_company(name: str) -> str:                      
+      60 +    """Strip common corporate suffixes for lenient matching."""
+      61 +    return _CORP_SUFFIX.sub("", name).strip()                  
+      62 +                                                               
+      63 +                                                               
+      64  def _load_company_names() -> frozenset[str]:
+      52 -    """Load the 205 canonical company names from the GNEM KB Ex
+         -cel (once)."""                                                 
+      65 +    """Load the canonical company names from the GNEM KB Excel 
+         +(once).                                                        
+      66 +                                                               
+      67 +    Both the full name and the suffix-stripped form are added t
+         +o the set so                                                   
+      68 +    that "Kia Georgia" matches KB entry "Kia Georgia Inc."     
+      69 +    """                                                        
+      70      global _COMPANY_NAMES
+      71      if _COMPANY_NAMES is not None:
+      72          return _COMPANY_NAMES
+      73      try:
+      74          df = pd.read_excel(_KB_PATH, usecols=["Company"])
+      58 -        names = frozenset(                                     
+      59 -            name.strip().lower()                               
+      60 -            for name in df["Company"].dropna().tolist()        
+      61 -            if str(name).strip()                               
+      62 -        )                                                      
+      63 -        _COMPANY_NAMES = names                                 
+      64 -        logger.info("Loaded %d company names from KB for determ
+         -inistic metrics", len(names))                                  
+      75 +        names_set: set[str] = set()                            
+      76 +        for raw in df["Company"].dropna().tolist():            
+      77 +            name = str(raw).strip()                            
+      78 +            if not name:                                       
+      79 +                continue                                       
+      80 +            name_lower = name.lower()                          
+      81 +            names_set.add(name_lower)                          
+      82 +            normalized = _normalize_company(name_lower)        
+      83 +            if normalized != name_lower and len(normalized) >= 
+         +3:                                                             
+      84 +                names_set.add(normalized)                      
+      85 +        _COMPANY_NAMES = frozenset(names_set)                  
+      86 +        logger.info("Loaded %d company name variants from KB fo
+         +r deterministic metrics", len(_COMPANY_NAMES))                 
+      87      except Exception as exc:
+      88          logger.warning("Could not load company names from KB (%
+          s) — set metrics will be empty", exc)
+      89          _COMPANY_NAMES = frozenset()
+
+● Bash(python -c "
+      from llm_comparison.evaluation import _load_company_names,
+      _extract_companies, _company_set_metrics, _count_exact_match…)
+  ⎿  Loaded 319 name variants
+     Kia variants: ['kia georgia', 'kia georgia inc.']
+     Set metrics: {'context_company_recall': 0.5, 'answer_company_recall':
+     … +7 lines (ctrl+o to expand)
+
+● Bash(python -c "
+      from llm_comparison.evaluation import _load_company_names…)
+  ⎿  Hyundai variants: ['hyundai & lg energy solution (lges)', 'hyundai ind
+     ustrial', 'hyundai industrial co.', 'hyundai mobis (georgia)', 'hyunda
+     i motor', 'hyundai motor group', 'hyundai transys georgia powertrain',
+     … +2 lines (ctrl+o to expand)
+
+● All matching works correctly. Run the final comprehensive import check.
+
+● Bash(python -c "
+      from llm_comparison.config import load_generation_config,
+      load_judge_config…)
+  ⎿  Filters: {'tier': 'Tier 1', 'location_county': 'Troup', 'min_employmen
+     t': 500.0}
+     … +6 lines (ctrl+o to expand)
+
+● All checks pass. Here is a precise summary of every change made and why:
+
+  ---
+  What was implemented
+
+  retrieval.py — fully rewritten
+
+  Bug fixed: meta.get("products", "") → meta.get("products_services", ""). The
+  payload field is products_services; the old code silently produced empty
+  products for every company in context.
+
+  Hybrid search added (_search()): now issues a dense + sparse RRF query using
+  Qdrant's Prefetch + FusionQuery(RRF). Falls back to dense-only if sparse
+  fails. Each hit now carries dense_rank, dense_score, and retrieval_source
+  ("hybrid" or "dense") for auditing.
+
+  Sparse vector builder (_build_sparse_vector()): copied from
+  phase2_embedding/vector_store.py to keep llm_comparison self-contained. Same
+  hash-based TF logic, same _VOCAB_SIZE = 2^20.
+
+  Metadata pre-filtering (extract_filters() + _make_qdrant_filter()): extracts
+  tier, county, and employment thresholds from the question text using regex.
+  Passes them as Qdrant must filters before the vector search. Returns empty
+  dict if nothing is safely detected — no filter is always safer than a wrong
+  one.
+
+  Exhaustive rerank cap removed for list queries: instead of rerank_top_n=60
+  hard cap, list queries now return all candidates with rerank_score > -5.0.
+  Point queries keep the rerank_top_n=40 cap.
+
+  format_context() field mapping fixed: added location_city,
+  ev_battery_relevant, industry_group, facility_type; removed nonexistent
+  total_employment fallback.
+
+  generation.py
+
+  _call_ollama() now accepts num_ctx and num_predict parameters. run_mode()
+  detects query type via classify_query() and passes num_ctx=16384 /
+  num_predict=1200 for list queries, 8192 / 800 for point queries.
+
+  prompts.py
+
+  Three new instruction blocks:
+  - _EXCEL_GUARDRAIL — injected into modes 3 and 4 only: "INTERNAL_CONTEXT is
+  the authoritative source for company names, counts, roles, tiers, locations,
+  employment, and products."
+  - _INCOMPLETE_CONTEXT — injected into rag_only: if context appears incomplete
+  for an exhaustive question, begin with "Note: retrieved context may be
+  incomplete."
+  - Both are additions to the existing _FIELD_FOCUS — not replacements.
+
+  evaluation.py
+
+  Deterministic set metrics added: _load_company_names() loads 193 KB companies
+  + 319 normalized variants (strips "Inc.", "LLC", "Corp.", etc.) so "Kia
+  Georgia" matches KB entry "Kia Georgia Inc." _company_set_metrics() computes
+  context_company_recall, answer_company_recall, answer_company_precision,
+  answer_company_f1. _count_exact_match() checks count answers.
+
+  Every evaluate_rows() output row now includes these columns plus
+  gold_companies, context_companies, answer_companies for per-row audit.
+
+  New aggregation sheet agg_company_set: mean of all deterministic metrics
+  grouped by model/mode, written automatically via the existing **aggregations
+  spread in run_llm_evaluation.py.
+
+✻ Churned for 9m 2s
