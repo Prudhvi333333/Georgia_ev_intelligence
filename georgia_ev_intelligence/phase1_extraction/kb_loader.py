@@ -75,14 +75,12 @@ _COL_MAP = {
 def _find_gnem_excel() -> Path:
     """
     Locate the GNEM Excel file.
-    Prefers the cleaned version (GNEM_Cleaned.xlsx) if it exists.
-    Falls back to the original if cleaned is not found.
-    Run scripts/clean_excel.py first to create the cleaned version.
+    sreeja-arch intentionally uses the raw source workbook, not
+    GNEM_Cleaned.xlsx, so reingestion matches the evaluation spec.
     """
     kb_dir = Path(__file__).resolve().parents[2] / "kb"
     candidates = [
-        kb_dir / "GNEM_Cleaned.xlsx",                                  # ← cleaned first
-        kb_dir / "GNEM - Auto Landscape Lat Long Updated.xlsx",         # ← original fallback
+        kb_dir / "GNEM - Auto Landscape Lat Long Updated.xlsx",
         Path(__file__).resolve().parents[2] / "ev_data_LLM_comparsions" / "GNEM - Auto Landscape Lat Long Updated.xlsx",
         Path(__file__).resolve().parents[2] / "GNEM - Auto Landscape Lat Long Updated.xlsx",
     ]
@@ -91,7 +89,7 @@ def _find_gnem_excel() -> Path:
             logger.info("Found GNEM Excel at: %s", path)
             return path
     raise FileNotFoundError(
-        "Cannot find GNEM Excel file. Run scripts/clean_excel.py first to create kb/GNEM_Cleaned.xlsx\n"
+        "Cannot find required raw GNEM Excel file: kb/GNEM - Auto Landscape Lat Long Updated.xlsx\n"
         f"Searched: {[str(p) for p in candidates]}"
     )
 
