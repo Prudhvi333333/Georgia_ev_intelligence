@@ -198,8 +198,6 @@ def extract_filters(question: str) -> dict[str, Any]:
         category_values.append("OEM Supply Chain")
     if category_values:
         result["category_values"] = _dedupe_preserve_order(category_values)
-        # In Q33 "EV-relevant" is descriptive, but the golden set is all
-        # OEM Footprint/Supply Chain rows. Do not add EV relevance as a filter.
         result["suppress_ev_relevance_filter"] = True
 
     company_names = _extract_company_names_from_question(q_lower)
@@ -250,9 +248,7 @@ def extract_filters(question: str) -> dict[str, Any]:
         result["oem_terms_any"] = ["kia"]
     if "rivian" in q_lower:
         result.setdefault("oem_terms_any", []).append("rivian")
-    if "dual-platform" in q_lower or "dual platform" in q_lower or "ev-native oem" in q_lower:
-        result["oem_terms_all"] = ["hyundai", "kia", "rivian"]
-    if "multiple oems" in q_lower or "diversified customer base" in q_lower:
+    if "multiple oems" in q_lower:
         result["primary_oems_values"] = ["Multiple OEMs"]
     if (
         "existing oem contract" in q_lower
@@ -277,9 +273,6 @@ def extract_filters(question: str) -> dict[str, Any]:
         "ev relevant" in q_lower or "ev-relevant" in q_lower or "ev component" in q_lower
     ):
         result["ev_relevance_values"] = ["Yes"]
-    if "growing their ev-specific customer base" in q_lower:
-        result["ev_relevance_values"] = ["Indirect"]
-
     # Facility / industry constraints.
     if "manufacturing plant" in q_lower or "manufacturing facilities" in q_lower:
         result["facility_terms"] = ["manufacturing plant"]
@@ -295,15 +288,10 @@ def extract_filters(question: str) -> dict[str, Any]:
     # Product/service phrase constraints. These are used by the Excel scan, not
     # Qdrant filters, because Qdrant payload filters are exact-field oriented.
     product_terms: list[str] = []
-    if "lithium-ion battery materials, cells, or electrolytes" in q_lower:
-        product_terms.extend(["lithium-ion battery", "battery cells", "battery electrolyte"])
-    elif "battery electrolytes or lithium-ion battery materials" in q_lower:
-        product_terms.extend(["battery electrolyte", "lithium-ion battery materials"])
-    else:
-        if "lithium-ion battery materials" in q_lower:
-            product_terms.append("lithium-ion battery materials")
-        if "battery electrolyte" in q_lower or "battery electrolytes" in q_lower or "electrolyte" in q_lower:
-            product_terms.append("battery electrolyte")
+    if "lithium-ion battery materials" in q_lower:
+        product_terms.append("lithium-ion battery materials")
+    if "battery electrolyte" in q_lower or "battery electrolytes" in q_lower or "electrolyte" in q_lower:
+        product_terms.append("battery electrolyte")
     if (
         "battery cell" in q_lower
         and re.search(r"\b(?:produce|producing|manufacture|manufacturing)\b", q_lower)
@@ -311,15 +299,14 @@ def extract_filters(question: str) -> dict[str, Any]:
         and "battery cells" not in product_terms
     ):
         product_terms.append("battery cells")
-    if "battery parts" in q_lower or "enclosure systems" in q_lower:
-        product_terms.extend(["lithium-ion battery", "battery cells", "battery parts", "battery electrolyte"])
+    if "battery parts" in q_lower:
+        product_terms.append("battery parts")
     if "copper foil" in q_lower or "electrodeposited" in q_lower:
         product_terms.extend(["copper foil", "electrodeposited"])
     if "anodes" in q_lower or "cathodes" in q_lower:
         product_terms.extend(["lithium-ion battery", "raw materials"])
     if (
         "battery materials" in q_lower
-        and "battery electrolytes or lithium-ion battery materials" not in q_lower
         and not hypothetical_location
         and "raw materials" not in product_terms
     ):
@@ -340,7 +327,7 @@ def extract_filters(question: str) -> dict[str, Any]:
         product_terms.append("composite")
     if "lightweight aluminum" in q_lower or "aluminum" in q_lower:
         product_terms.append("aluminum")
-    if ("high-voltage" in q_lower or "high voltage" in q_lower) and "product descriptions include" in q_lower:
+    if "high-voltage" in q_lower or "high voltage" in q_lower:
         product_terms.append("high-voltage")
     if "inverter" in q_lower:
         product_terms.append("inverter")
@@ -378,41 +365,32 @@ def extract_filters(question: str) -> dict[str, Any]:
         result["min_employment"] = float(emp_over_after.group(1).replace(",", ""))
         result["min_employment_strict"] = True
 
-    # Aggregate/list intents that should be computed from the filtered Excel
-    # rows rather than left to semantic search.
-    if "highest employment" in q_lower and "county" in result:
-        result["sort_employment_desc_limit"] = 1
+    # Aggregate/list intents that should be computed from filtered Excel rows
+    # rather than left to semantic search.
+    if ("highest" in q_lower or "greatest" in q_lower) and "employment" in q_lower:
+        if "county" in q_lower or "area" in q_lower or "region" in q_lower:
+            result.setdefault("aggregate", "highest_county_employment")
+            result["force_kb_scan"] = True
+        elif not result.get("sort_employment_desc_limit"):
+            result["sort_employment_desc_limit"] = 1
+            result["force_kb_scan"] = True
+
+    top_n_emp_match = re.search(r"\btop\s+(\d+)\b", q_lower)
+    if top_n_emp_match and "employment" in q_lower:
+        result["sort_employment_desc_limit"] = int(top_n_emp_match.group(1))
         result["force_kb_scan"] = True
-    if "highest employment" in q_lower and "location_county" in result:
-        result["sort_employment_desc_limit"] = 1
+
+    if ("highest concentration" in q_lower or "most concentrated" in q_lower) and "material" in q_lower:
+        result.setdefault("aggregate", "area_concentration")
+
+    if ("how many" in q_lower) and ("area" in q_lower or "location" in q_lower) and "manufacturing" in q_lower:
+        result.setdefault("aggregate", "area_counts")
+
+    if "served by only" in q_lower or "only one company" in q_lower or "single company" in q_lower:
+        result.setdefault("aggregate", "single_company_roles")
         result["force_kb_scan"] = True
-    if "highest total employment among tier 1" in q_lower:
-        result["aggregate"] = "highest_county_employment"
-        result["tier"] = "Tier 1"
-        result["force_kb_scan"] = True
-    elif "highest total employment across all companies" in q_lower:
-        result["aggregate"] = "highest_county_employment"
-        result["force_kb_scan"] = True
-    if "largest employment" in q_lower and "thermal" in q_lower:
-        result["sort_employment_desc_limit"] = 4
-        result["force_kb_scan"] = True
-    if "top 10" in q_lower and "employment" in q_lower:
-        result["sort_employment_desc_limit"] = 10
-        result["force_kb_scan"] = True
-        if "some ev relevance" in q_lower or "ev-specific" in q_lower:
-            result["ev_relevance_values"] = ["Yes", "Indirect"]
-    if "primary involvement in the electric vehicle or battery supply chain" in q_lower:
-        result["ev_relevance_values"] = ["Yes"]
-    if "gradual evolution toward ev-related" in q_lower:
-        result["ev_relevance_values"] = ["Indirect"]
-    if "highest concentration" in q_lower and "materials" in q_lower:
-        result["aggregate"] = "area_concentration"
-    if "how many" in q_lower and "areas" in q_lower and "manufacturing plant" in q_lower:
-        result["aggregate"] = "area_counts"
-    if "served by only a single company" in q_lower:
-        result["aggregate"] = "single_company_roles"
-        result["force_kb_scan"] = True
-    if "lack battery cell" in q_lower and "tier 1 general automotive infrastructure" in q_lower:
+
+    if "lack" in q_lower and "battery" in q_lower and "tier 1" in q_lower and "general automotive" in q_lower:
         result.clear()
         result["aggregate"] = "counties_lacking_battery_with_tier1_general_auto"
         result["force_kb_scan"] = True
@@ -429,6 +407,55 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
             seen.add(key)
             out.append(value)
     return out
+
+
+def _build_selection_rule(filters: dict[str, Any]) -> str:
+    """Summarize the retrieval/filter operation in human-readable form."""
+    if not filters:
+        return "full KB scan (no structured filters)"
+
+    parts: list[str] = []
+    if filters.get("tier"):
+        parts.append(f"Tier = {filters['tier']}")
+    elif filters.get("tiers"):
+        parts.append("Tier in {" + ", ".join(filters["tiers"]) + "}")
+    if filters.get("location_county"):
+        parts.append(f"County = {filters['location_county']}")
+    if filters.get("category_values"):
+        parts.append("Category in {" + ", ".join(filters["category_values"]) + "}")
+    if filters.get("classification_values"):
+        parts.append("Classification in {" + ", ".join(filters["classification_values"]) + "}")
+    if filters.get("role_terms"):
+        parts.append("Role contains {" + ", ".join(filters["role_terms"]) + "}")
+    if filters.get("product_terms"):
+        parts.append("Products contains {" + ", ".join(filters["product_terms"]) + "}")
+    if filters.get("industry_terms"):
+        parts.append("Industry contains {" + ", ".join(filters["industry_terms"]) + "}")
+    if filters.get("facility_terms"):
+        parts.append("Facility contains {" + ", ".join(filters["facility_terms"]) + "}")
+    if filters.get("oem_terms_all"):
+        parts.append("OEMs contain all {" + ", ".join(filters["oem_terms_all"]) + "}")
+    if filters.get("oem_terms_any"):
+        parts.append("OEMs contain any {" + ", ".join(filters["oem_terms_any"]) + "}")
+    if filters.get("primary_oems_values"):
+        parts.append("Primary OEMs in {" + ", ".join(filters["primary_oems_values"]) + "}")
+    if filters.get("ev_relevance_values"):
+        parts.append("EV relevance in {" + ", ".join(filters["ev_relevance_values"]) + "}")
+    if filters.get("ev_relevance_not_values"):
+        parts.append("EV relevance not in {" + ", ".join(filters["ev_relevance_not_values"]) + "}")
+    if filters.get("min_employment") is not None:
+        op = ">" if filters.get("min_employment_strict") else ">="
+        parts.append(f"Employment {op} {int(filters['min_employment'])}")
+    if filters.get("max_employment") is not None:
+        op = "<" if filters.get("max_employment_strict") else "<="
+        parts.append(f"Employment {op} {int(filters['max_employment'])}")
+
+    selection = "filtered " + ", ".join(parts) if parts else "full KB scan (no structured filters)"
+    if filters.get("sort_employment_desc_limit"):
+        selection += (
+            f", sorted by Employment descending, returned top {int(filters['sort_employment_desc_limit'])}"
+        )
+    return selection
 
 
 def _make_qdrant_filter(filters: dict[str, Any]) -> models.Filter | None:
@@ -918,8 +945,10 @@ def _kb_scan(filters: dict[str, Any]) -> list[dict[str, Any]] | None:
         )
         matched = matched.head(int(filters["sort_employment_desc_limit"])).drop(columns=["_employment_sort"])
     elif not filters.get("preserve_company_rows"):
-        dedupe_subset = ["Company", "Category"] if "category_values" in filters else ["Company"]
-        matched = matched.drop_duplicates(subset=dedupe_subset, keep="first")
+        matched = matched.drop_duplicates(
+            subset=["Company", "Updated Location", "Primary Facility Type"],
+            keep="first",
+        )
 
     if matched.empty:
         logger.info("KB scan found 0 rows for filters %s", filters)
@@ -1076,8 +1105,11 @@ def retrieve_and_rerank(
     cfg: GenerationConfig,
     top_k: int = 120,
     rerank_top_n: int = 40,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Structured retrieval with vector fallback.
+
+    Returns (hits, retrieval_meta) where retrieval_meta describes the retrieval
+    operation so format_context() can prepend a RETRIEVAL SUMMARY for the LLM.
 
     Decision tree:
       1. If query is a list/count question AND structured filters are extractable
@@ -1103,19 +1135,29 @@ def retrieve_and_rerank(
     ):
         kb_hits = _kb_scan(filters)
         if kb_hits is not None:
+            selection_rule = _build_selection_rule(filters)
+            is_complete = "sort_employment_desc_limit" not in filters and not filters.get("aggregate")
+            meta: dict[str, Any] = {
+                "mode": "deterministic_excel_scan",
+                "selection_rule": selection_rule,
+                "matched_rows": len(kb_hits),
+                "is_complete": is_complete,
+                "sort_rule": "Employment descending" if filters.get("sort_employment_desc_limit") else None,
+                "grouping_rule": "by County" if filters.get("aggregate") == "highest_county_employment" else None,
+            }
             if kb_hits:
                 logger.info("KB scan path: returning %d deterministic rows", len(kb_hits))
-                return kb_hits
+                return kb_hits, meta
             else:
                 logger.info("KB scan path: 0 deterministic rows for filters %s", filters)
-                return []
+                return [], meta
 
     # Path 2: vector search (hybrid → dense fallback).
     qdrant_filter = _make_qdrant_filter(filters)
     client = _get_qdrant_client(cfg.qdrant_url, cfg.qdrant_api_key)
     query_vector = _embed_query(question, cfg.ollama_base_url, cfg.embedding_model)
 
-    hits, _source = _search(
+    hits, vec_source = _search(
         client=client,
         collection=cfg.qdrant_collection,
         dense_name=cfg.qdrant_dense_name,
@@ -1134,20 +1176,74 @@ def retrieve_and_rerank(
             "Vector list mode: %d/%d hits above rerank threshold %.1f",
             len(result), len(reranked), _LIST_RERANK_THRESHOLD,
         )
-        return result
+        vec_meta: dict[str, Any] = {
+            "mode": vec_source,
+            "selection_rule": _build_selection_rule(filters) if filters else "vector search, no structured filters",
+            "matched_rows": len(result),
+            "is_complete": False,
+            "sort_rule": "rerank score descending",
+            "grouping_rule": None,
+        }
+        return result, vec_meta
 
-    return reranked[:rerank_top_n]
+    final = reranked[:rerank_top_n]
+    point_meta: dict[str, Any] = {
+        "mode": vec_source,
+        "selection_rule": _build_selection_rule(filters) if filters else "vector search, no structured filters",
+        "matched_rows": len(final),
+        "is_complete": False,
+        "sort_rule": "rerank score descending",
+        "grouping_rule": None,
+    }
+    return final, point_meta
 
 
-def format_context(hits: list[dict[str, Any]]) -> str:
-    """Render hits as a structured field-per-line format."""
+def format_context(
+    hits: list[dict[str, Any]],
+    retrieval_meta: dict[str, Any] | None = None,
+) -> str:
+    """Render hits as a structured field-per-line format.
+
+    If retrieval_meta is provided, a RETRIEVAL SUMMARY block is prepended so
+    the LLM knows the selection rule and can trust the returned rows.
+    """
     if not hits:
         return ""
+
+    header_lines: list[str] = []
+    if retrieval_meta:
+        mode_label = {
+            "deterministic_excel_scan": "deterministic Excel scan",
+            "hybrid": "hybrid (dense + sparse)",
+            "dense": "dense vector",
+        }.get(retrieval_meta.get("mode", ""), retrieval_meta.get("mode", "unknown"))
+        completeness = (
+            f"{retrieval_meta['matched_rows']} (complete — all matching rows returned)"
+            if retrieval_meta.get("is_complete")
+            else f"{retrieval_meta['matched_rows']} (may be partial — capped at top N by score)"
+        )
+        header_lines.append("RETRIEVAL SUMMARY:")
+        header_lines.append(f"  Retrieval mode: {mode_label}")
+        header_lines.append(f"  Selection rule: {retrieval_meta.get('selection_rule', 'unknown')}")
+        header_lines.append(f"  Matched KB rows: {completeness}")
+        if retrieval_meta.get("sort_rule"):
+            header_lines.append(f"  Sort rule: {retrieval_meta['sort_rule']}")
+        if retrieval_meta.get("grouping_rule"):
+            header_lines.append(f"  Grouping rule: {retrieval_meta['grouping_rule']}")
+        if retrieval_meta.get("mode") == "deterministic_excel_scan":
+            header_lines.append("")
+            header_lines.append(
+                "All returned rows are deterministic KB matches. "
+                "Do not re-filter them. "
+                "If the selection rule says 'top 1', the first row IS the answer."
+            )
+        header_lines.append("---")
+
     blocks: list[str] = []
     for i, hit in enumerate(hits, start=1):
         meta = hit.get("metadata") or {}
         company = hit.get("company_name") or meta.get("company_name") or ""
-        header = f"[{i}] {company}" if company else f"[{i}]"
+        block_header = f"[{i}] {company}" if company else f"[{i}]"
 
         tier = meta.get("tier", "")
         role = meta.get("ev_supply_chain_role", "")
@@ -1159,9 +1255,11 @@ def format_context(hits: list[dict[str, Any]]) -> str:
         ev_relevant = meta.get("ev_battery_relevant", "")
         industry = meta.get("industry_group", "")
         facility = meta.get("facility_type", "")
+        supplier_affiliation = meta.get("supplier_affiliation_type", "")
+        classification = meta.get("classification_method", "")
         source_url = hit.get("source_url", "")
 
-        lines: list[str] = [header]
+        lines: list[str] = [block_header]
         if tier:
             lines.append(f"  Tier: {tier}")
         if role:
@@ -1181,12 +1279,22 @@ def format_context(hits: list[dict[str, Any]]) -> str:
             lines.append(f"  Industry: {industry}")
         if facility:
             lines.append(f"  Facility: {facility}")
+        if supplier_affiliation and str(supplier_affiliation).lower() not in ("nan", ""):
+            lines.append(f"  Affiliation: {supplier_affiliation}")
+        if classification and str(classification).lower() not in ("nan", ""):
+            lines.append(f"  Classification: {classification}")
         if source_url:
             lines.append(f"  Source: {source_url}")
 
-        raw_text = hit.get("text", "").strip()
-        if raw_text:
-            lines.append(raw_text)
+        retrieval_source = hit.get("retrieval_source", "")
+        if retrieval_source not in ("excel_scan", "excel_aggregate"):
+            raw_text = hit.get("text", "").strip()
+            if raw_text:
+                lines.append(raw_text)
 
         blocks.append("\n".join(lines))
-    return "\n\n".join(blocks)
+
+    body = "\n\n".join(blocks)
+    if header_lines:
+        return "\n".join(header_lines) + "\n\n" + body
+    return body

@@ -37,6 +37,22 @@ _EXCEL_GUARDRAIL = (
     "    Excel-grounded answer.\n"
 )
 
+# Retrieval-trust instruction injected into all RAG prompts.
+# Tells the LLM to trust the RETRIEVAL SUMMARY prepended by format_context().
+_RETRIEVAL_TRUST = (
+    "Retrieval trust rules:\n"
+    "  * INTERNAL_CONTEXT begins with a RETRIEVAL SUMMARY. Trust every claim in it.\n"
+    "  * If RETRIEVAL SUMMARY states a selection rule (e.g., 'sorted by Employment\n"
+    "    descending, returned top 1'), the listed company IS the answer. Do not\n"
+    "    second-guess, re-rank, or refuse to name it.\n"
+    "  * If RETRIEVAL SUMMARY says 'Matched KB rows: N', include all N companies\n"
+    "    or locations in your answer. Do not collapse or merge rows.\n"
+    "  * If a row is a deterministic KB match, do not re-filter it based on your\n"
+    "    own judgment. The selection rule already explains why it was included.\n"
+    "  * Do not refuse to answer when a deterministic selection rule is present\n"
+    "    and the answer row is in context.\n"
+)
+
 # Incomplete-context warning injected into rag_only for exhaustive questions.
 _INCOMPLETE_CONTEXT = (
     "  * If the question asks to list ALL matching companies but INTERNAL_CONTEXT\n"
@@ -74,6 +90,7 @@ def _build_rag_only(question: str, internal_context: str) -> str:
         tagging=[],
     )
     extra = (
+        f"{_RETRIEVAL_TRUST}\n"
         "Strict instruction: Answer ONLY using INTERNAL_CONTEXT. Do not use any pretrained\n"
         "knowledge. Do not use any web data. If INTERNAL_CONTEXT does not contain enough\n"
         "information to answer the question, your entire answer must be exactly:\n"

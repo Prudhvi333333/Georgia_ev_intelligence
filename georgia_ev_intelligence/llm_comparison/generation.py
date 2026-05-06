@@ -123,7 +123,7 @@ def run_mode(
             actual_rerank_top_n = 0
             tavily_used = False
         elif mode in ("rag_only", "rag_pretrained", "rag_pretrained_web"):
-            hits = retrieve_and_rerank(
+            hits, retrieval_meta = retrieve_and_rerank(
                 question=question,
                 cfg=cfg,
                 top_k=top_k,
@@ -131,7 +131,7 @@ def run_mode(
             )
             retrieved_count = len(hits)
             actual_rerank_top_n = retrieved_count
-            internal_context = format_context(hits)
+            internal_context = format_context(hits, retrieval_meta)
             if mode == "rag_pretrained_web":
                 web_context, web_sources = _run_tavily(question, cfg.tavily_api_key)
                 tavily_used = bool(web_context)
